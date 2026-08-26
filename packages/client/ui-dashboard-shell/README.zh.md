@@ -11,7 +11,7 @@
 - `dashboard.sidebar` — Agent 导航栏（内置回退渲染静态名单 `coder` / `btender` / `invest` / `video`）。
 - `dashboard.main` — 所选 Agent 的工作台（内置回退渲染统计与分组会话列表）。
 
-当前尚无 Profile 平面：Agent 名单是静态的，会话不按 Agent 过滤，新建会话也不会原子创建 Profile——这些属于后续阶段。
+当前尚无 Profile 平面：Agent 名单是静态的，会话不按 Agent 过滤。**新建会话**确实会绑定所选 Agent 映射的 `agentPreset`（注入的动作会在实时名单缺少该 preset 时丢弃它并回退到部署默认），但原子化的 Profile-加-Session 记录属于后续阶段。
 
 `DashboardFrameComponentProps` 组合了 root 属主份额、全局 `useSessions` 与 `useWorkspaces` 钩子、两个子槽渲染份额，以及注入的 `openSession` / `startSession` 回调。本插件不注册 store。
 

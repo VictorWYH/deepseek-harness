@@ -11,7 +11,7 @@ The frame declares two root-scope child seats and renders them through `renderSl
 - `dashboard.sidebar` — the Agent navigation rail (the built-in fallback renders the static roster `coder` / `btender` / `invest` / `video`).
 - `dashboard.main` — the selected Agent's dashboard (the built-in fallback renders the stats plus the grouped Session list).
 
-There is no profile plane yet: the Agent roster is static, Sessions are not filtered by Agent, and New Session does not create a Profile atomically — those are later phases.
+There is no profile plane yet: the Agent roster is static and Sessions are not filtered by Agent. **New session** does bind the selected Agent's mapped `agentPreset` (the injected action drops a preset the live roster lacks and falls back to the deployment default), but an atomic Profile-plus-Session record is a later phase.
 
 `DashboardFrameComponentProps` composes the root owner share, the global `useSessions` and `useWorkspaces` hooks, the two child-slot render shares, and the injected `openSession` / `startSession` callbacks. There is no plugin store.
 

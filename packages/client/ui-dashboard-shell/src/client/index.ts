@@ -13,6 +13,11 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+// Type-only: the panel-action face ui-conversation reaches through ctx.layout.
+// The dashboard composition disables ui-layout wholesale (its native AppFrame
+// registration would collide with this shell's re-hosted child seats), so this
+// package provides the layout service shim itself.
+import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { DashboardShellInjected } from './contract/slots.ts'
 import { DashboardFrame } from './DashboardFrame.tsx'
 import { en, zh, type DashboardKey } from './locales.ts'
@@ -37,11 +42,35 @@ const NS = 'dashboard'
 export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'connection']
 
 /**
+ * The layout-service shim replacing ui-layout's controller in the dashboard
+ * composition. The dashboard owns its rail and hosts no details column, so the
+ * panel transitions ui-conversation triggers are structural no-ops: nothing is
+ * lost, and the calls stay safe (fire-and-forget in ui-conversation).
+ */
+const dashboardLayoutService: ILayout = {
+  toggleSidebar(): void { /* the Agent rail is always visible in this shell */ },
+  openDetails(): void { /* no details column in this shell */ },
+  closeDetails(): void { /* no details column in this shell */ },
+}
+
+/**
  * Register the product shell and its service callbacks.
  * @param ctx - Client root context.
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-dashboard-shell: dictionaries')
+
+  // Provide ctx.layout before the root registration so ui-conversation (which
+  // injects 'layout') can activate. Only provide when ui-layout is absent —
+  // a partial composition that keeps the real controller must not be shadowed.
+  ctx.effect(() => {
+    if (ctx.get('layout') !== undefined) {
+      // Another entry already owns the seat; this shim stays inert.
+      return () => {}
+    }
+    const disposeService = ctx.reflect.provide('layout', dashboardLayoutService)
+    return () => { void disposeService() }
+  }, 'ui-dashboard-shell: layout service shim')
 
   /** The installed preset ids from the live roster; a transport failure degrades to empty. */
   const resolvePresetIds = async (): Promise<ReadonlySet<string>> => {

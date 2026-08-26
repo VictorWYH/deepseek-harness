@@ -1,0 +1,9 @@
+{
+  "id": "dashboard",
+  "description": "Dashboard Shell 最终实例",
+  "port": 3081,
+  "home": "D:/DSHAgent/dashboard-home",
+  "sourceRoot": "H:/AIWork/dsh-fork",
+  "shell": "dashboard",
+  "allowSharedHome": false
+}

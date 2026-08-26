@@ -1,0 +1,9 @@
+{
+  "id": "native",
+  "description": "原生 DSH 对照与调试实例",
+  "port": 3080,
+  "home": "D:/DSHAgent/native-home",
+  "sourceRoot": "C:/Users/wozong/AppData/Roaming/npm/node_modules/@deepseek-ai/dsh",
+  "shell": "native",
+  "allowSharedHome": false
+}

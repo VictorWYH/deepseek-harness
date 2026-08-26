@@ -1,0 +1,9 @@
+{
+  "id": "dashboard-dev",
+  "description": "Dashboard Shell 隔离验证实例；不占用当前 3081 会话",
+  "port": 3082,
+  "home": "D:/DSHAgent/dashboard-dev-home",
+  "sourceRoot": "H:/AIWork/dsh-fork",
+  "shell": "dashboard",
+  "allowSharedHome": false
+}

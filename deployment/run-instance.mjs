@@ -183,7 +183,28 @@ async function main() {
 
   const bin = resolveBin(instance)
   const env = { ...process.env, DSH_HOME: instance.home }
-  const dshArgs = [...args.dshArgs, '--port', String(instance.port)]
+  // The `web` alias is a profile command; parent options such as --patch are
+  // rejected after that alias, so normalize it to the equivalent --profile web
+  // invocation and keep --patch before the app arguments.
+  const dshArgs = [...args.dshArgs]
+  const webIndex = dshArgs.indexOf('web')
+  if (webIndex >= 0) dshArgs.splice(webIndex, 1)
+  const parentOptions = []
+  const patchIndex = dshArgs.findIndex((arg) => arg === '--patch' || arg.startsWith('--patch='))
+  if (patchIndex >= 0) {
+    parentOptions.push(dshArgs[patchIndex])
+    if (dshArgs[patchIndex] === '--patch') {
+      const patchValue = dshArgs[patchIndex + 1]
+      if (patchValue === undefined) fail('--patch requires a value')
+      parentOptions.push(patchValue)
+      dshArgs.splice(patchIndex, 2)
+    } else {
+      dshArgs.splice(patchIndex, 1)
+    }
+  }
+  dshArgs.unshift('--profile', 'web')
+  dshArgs.unshift(...parentOptions)
+  dshArgs.push('--port', String(instance.port))
 
   console.log(`[run-instance] instance: ${instance.id}`)
   console.log(`[run-instance] shell: ${instance.shell}`)

@@ -71,7 +71,10 @@ function buildWorkspaces(): WorkspaceListState {
   }
 }
 
-function mount(roster: string[] = ['coder', 'btender', 'invest', 'video']) {
+/** Shipped preset roster the frame resolves against (apps/cli/config/agent-presets). */
+const SHIPPED_PRESETS = ['code', 'cordis', 'minimal', 'standard']
+
+function mount(roster: string[] = SHIPPED_PRESETS) {
   const state = { sessions: buildSessions(), workspaces: buildWorkspaces() }
   const openSession = vi.fn()
   const startSession = vi.fn()
@@ -156,37 +159,46 @@ describe('DashboardFrame product shell', () => {
     expect(b.openSession).toHaveBeenLastCalledWith('s3')
   })
 
-  it('starts a New Session with the selected Agent preset globally and per Workspace', () => {
+  it('starts a New Session with the resolved preset globally and per Workspace', () => {
     const b = mount()
     // Nav foot + dashboard header + one per workspace group.
     expect(screen.getAllByRole('button', { name: 'New session' })).toHaveLength(4)
     fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]!)
-    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'coder')
+    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
     fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
-    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'coder')
+    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
     const groupW1 = screen.getByText('ws-w1').closest('section')!
     fireEvent.click(within(groupW1).getByRole('button', { name: 'New session' }))
-    expect(b.startSession).toHaveBeenLastCalledWith('w1', 'coder')
+    expect(b.startSession).toHaveBeenLastCalledWith('w1', 'standard')
     const groupW2 = screen.getByText('ws-w2').closest('section')!
     fireEvent.click(within(groupW2).getByRole('button', { name: 'New session' }))
-    expect(b.startSession).toHaveBeenLastCalledWith('w2', 'coder')
-    // After switching Agent the mapped preset follows the selection.
+    expect(b.startSession).toHaveBeenLastCalledWith('w2', 'standard')
+    // After switching Agent the resolved preset still rides the shipped default.
     fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
-    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'invest')
+    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
   })
 
-  it('loads the preset roster once and notices an Agent whose preset is not installed', async () => {
-    // 'video' is missing from the installed roster.
-    const b = mount(['coder', 'btender', 'invest'])
+  it('loads the preset roster once and falls back to the deployment default', async () => {
+    // The shipped roster lacks the Agent-mapped default (`standard`) — but
+    // only `minimal` is installed, so no usable preset resolves.
+    const b = mount(['minimal'])
     expect(b.resolveAgentPresets).toHaveBeenCalledTimes(1)
-    // The selected coder Agent's preset is installed → no notice.
-    expect(screen.queryByText(/Preset "coder" is not installed/)).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Video Agent' }))
-    expect(await screen.findByText('Preset "video" is not installed; the default composition will be used')).toBeTruthy()
-    // The missing preset is not passed to the workspaces action either.
+    // The selected coder Agent's mapped preset is not installed → notice.
+    expect(await screen.findByText('Preset "standard" is not installed; the default composition will be used')).toBeTruthy()
+    // Nothing usable is passed to the workspaces action either.
     fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, undefined)
+  })
+
+  it('shows no preset notice when the deployment default is installed', async () => {
+    const b = mount(['standard'])
+    // Roster settles without any missing-preset notice: the mapped preset
+    // (the deployment default) IS installed for every Agent.
+    await screen.findByRole('heading', { name: 'Coder Agent' })
+    expect(screen.queryByText(/is not installed/)).toBeNull()
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
+    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
   })
 
   it('shows ungrouped sessions and the loading line before baselines are ready', () => {

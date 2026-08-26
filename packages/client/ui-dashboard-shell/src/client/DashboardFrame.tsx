@@ -22,7 +22,7 @@ import type {
   DashboardSidebarOwnerProps,
 } from './contract/slots.ts'
 import type { DashboardKey } from './locales.ts'
-import { presetForAgent } from './presets.ts'
+import { presetForAgent, resolveAgentPreset } from './presets.ts'
 import css from './DashboardFrame.module.css'
 
 /** One stat card's display value and label. */
@@ -297,18 +297,23 @@ export function DashboardFrame({
     () => AGENTS.map(agent => ({ id: agent.id, label: t(agent.labelKey) })),
     [t],
   )
-  /** The selected Agent's mapped preset, when the Agent has one and it is
-   *  installed (or the roster is still loading — the injected action guards). */
+  /** The selected Agent's usable preset against the live roster: the mapped
+   *  preset when installed, else the deployment default (`standard`) when
+   *  installed, else none (the injected action also re-guards the create).
+   *  While the roster is still loading the mapped preset is passed optimistically
+   *  — the injected startSession re-checks availability before the create. */
   const usablePreset = useMemo(() => {
-    const mapped = presetForAgent(selectedAgent.id)
-    if (mapped === undefined) return undefined
-    return availablePresets === null || availablePresets.has(mapped) ? mapped : undefined
+    if (availablePresets === null) return presetForAgent(selectedAgent.id)
+    return resolveAgentPreset(selectedAgent.id, availablePresets)
   }, [availablePresets, selectedAgent])
-  /** Surface a missing-preset notice instead of silently starting on the default. */
+  /** Surface a missing-preset notice only when NO usable preset resolved —
+   *  neither the Agent's mapped preset nor the deployment default exists. */
   const presetNotice = useMemo(() => {
+    if (availablePresets === null) return undefined
+    const resolved = resolveAgentPreset(selectedAgent.id, availablePresets)
+    if (resolved !== undefined) return undefined
     const mapped = presetForAgent(selectedAgent.id)
-    if (mapped === undefined || availablePresets === null || availablePresets.has(mapped)) return undefined
-    return t('preset.missing', { preset: mapped })
+    return t('preset.missing', { preset: mapped ?? 'standard' })
   }, [availablePresets, selectedAgent, t])
   const startWithPreset = (workspaceId?: WorkspaceId): void => {
     void startSession(workspaceId, usablePreset)

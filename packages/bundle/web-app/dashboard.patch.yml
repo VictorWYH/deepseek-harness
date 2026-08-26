@@ -50,9 +50,6 @@
 - id: ui-brand-official
   disabled: true
 
-- id: ui-attachment
-  disabled: true
-
 # Tool call tree, generic fallback, and keyed business Tool views.
 - id: ui-tool
   disabled: true
@@ -66,16 +63,6 @@
 
 # Turn tail: produced-files row under each closing assistant message.
 - id: ui-deliverables
-  disabled: true
-
-- id: ui-workspace
-  disabled: true
-
-# Input triggers, command surface, and reference sources.
-- id: ui-input-trigger
-  disabled: true
-
-- id: ui-commands
   disabled: true
 
 - id: ui-skill
@@ -97,10 +84,6 @@
 
 # Per-message feedback.
 - id: ui-message-feedback
-  disabled: true
-
-# Model selection (/model popupSelect + composer seat).
-- id: ui-model-selection
   disabled: true
 
 - id: ui-permission
@@ -125,6 +108,15 @@
   disabled: true
 
 # ── intentionally left live ──────────────────────────────────────────────────
-# ui-conversation: the Dashboard main region re-hosts its conversation seat.
-# ui-settings:      host-plane settings service the conversation surface needs.
-# ui-renderer:      mounts the React application into the boot kernel.
+# ui-conversation:     the Dashboard main region re-hosts its conversation seat.
+# ui-workspace:        the hero's Workspace picker — without it a fresh home can
+#                      never create a Workspace/Session, so the composer stays
+#                      inert ("cannot type"). Also provides the sidebar browser.
+# ui-input-trigger:    the slash/at candidate menu and the `inputTriggers`
+#                      service ui-commands and ui-reference depend on.
+# ui-commands:         the slash command surface (`/model`, …) and `commandUi`.
+# ui-model-selection:  the composer model seat (`conversation.input.model`) —
+#                      the ONE control that clears a composer block.
+# ui-attachment:       the composer attachment seat (`conversation.input.attachments`).
+# ui-settings:         host-plane settings service the conversation surface needs.
+# ui-renderer:         mounts the React application into the boot kernel.

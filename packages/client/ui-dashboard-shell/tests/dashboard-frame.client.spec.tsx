@@ -103,6 +103,10 @@ function mount(roster: string[] = ['coder', 'btender', 'invest', 'video']) {
     startSession,
     resolveAgentPresets,
     renderedSlots,
+    /** The shell root element (`data-dsh-shell="dashboard"`), for class-state checks. */
+    frame() {
+      return view.container.querySelector<HTMLElement>('[data-dsh-shell="dashboard"]')!
+    },
     rerender() {
       view.rerender(<DashboardFrame {...props} />)
     },
@@ -196,5 +200,42 @@ describe('DashboardFrame product shell', () => {
     b.state.workspaces = { ...b.state.workspaces, items: [workspace('w1', ['s1', 's2'])], baselinesReady: false }
     b.rerender()
     expect(screen.getByText('Loading…')).toBeTruthy()
+  })
+
+  it('opens the mobile sidebar from the menu button', () => {
+    const b = mount()
+    const menu = screen.getByRole('button', { name: 'Open Agent navigation' })
+    // Closed: only the rail's own close control is present — the scrim is not rendered.
+    expect(menu.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(1)
+    expect(b.frame().className).not.toContain('frameSidebarOpen')
+    fireEvent.click(menu)
+    // Open: the scrim joins the rail close control and the frame enters the mobile state.
+    expect(menu.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(2)
+    expect(b.frame().className).toContain('frameSidebarOpen')
+  })
+
+  it('closes the mobile sidebar from the scrim overlay', () => {
+    const b = mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Open Agent navigation' }))
+    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(2)
+    // The scrim renders before the aside, so it leads the close-named buttons.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Close Agent navigation' })[0]!)
+    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Open Agent navigation' }).getAttribute('aria-expanded')).toBe('false')
+    expect(b.frame().className).not.toContain('frameSidebarOpen')
+  })
+
+  it('auto-closes the mobile sidebar when an Agent is selected', () => {
+    const b = mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Open Agent navigation' }))
+    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
+    // The selection landed and the sidebar collapsed back to the closed state.
+    expect(screen.getByRole('heading', { name: 'Invest Agent' })).toBeTruthy()
+    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Open Agent navigation' }).getAttribute('aria-expanded')).toBe('false')
+    expect(b.frame().className).not.toContain('frameSidebarOpen')
   })
 })

@@ -111,10 +111,16 @@ function AgentNav({
   selectedAgentId,
   onSelectAgent,
   onNewSession,
+  onClose,
   t,
-}: DashboardSidebarOwnerProps & { t: DashboardFrameComponentProps['t'] }) {
+}: DashboardSidebarOwnerProps & { onClose?: () => void; t: DashboardFrameComponentProps['t'] }) {
   return (
     <nav className={css.agentNav} aria-label={t('nav.agents')} data-agent-selected={selectedAgentId}>
+      {onClose !== undefined && (
+        <button type="button" className={css.sidebarClose} aria-label={t('nav.close')} onClick={onClose}>
+          <span aria-hidden="true">×</span>
+        </button>
+      )}
       <div className={css.shellTitle}>{t('shell.title')}</div>
       <ul className={css.agentList}>
         {agents.map(agent => (
@@ -269,6 +275,7 @@ export function DashboardFrame({
   const defaultAgent = AGENTS[0]
   if (defaultAgent === undefined) throw new Error('dashboard shell: Agent roster is empty')
   const [selectedAgentId, setSelectedAgentId] = useState<string>(defaultAgent.id)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   /** Installed preset ids from the live roster; null while the lookup is in flight. */
   const [availablePresets, setAvailablePresets] = useState<ReadonlySet<string> | null>(null)
   const sessions = useSessions(s => s)
@@ -322,8 +329,8 @@ export function DashboardFrame({
   const sidebarOwner: DashboardSidebarOwnerProps = {
     agents,
     selectedAgentId: selectedAgent.id,
-    onSelectAgent: (agentId) => { setSelectedAgentId(agentId) },
-    onNewSession: () => { startWithPreset() },
+    onSelectAgent: (agentId) => { setSelectedAgentId(agentId); setSidebarOpen(false) },
+    onNewSession: () => { startWithPreset(); setSidebarOpen(false) },
   }
   const mainOwner: DashboardMainOwnerProps = {
     selectedAgentId: selectedAgent.id,
@@ -331,10 +338,14 @@ export function DashboardFrame({
   }
 
   return (
-    <div className={css.frame} data-dsh-shell="dashboard">
+    <div className={sidebarOpen ? clsx(css.frame, css.frameSidebarOpen) : css.frame} data-dsh-shell="dashboard">
+      <button type="button" className={css.mobileMenuButton} aria-label={t('nav.open')} aria-expanded={sidebarOpen} onClick={() => { setSidebarOpen(true) }}>
+        <span aria-hidden="true">☰</span>
+      </button>
+      {sidebarOpen && <button type="button" className={css.sidebarScrim} aria-label={t('nav.close')} onClick={() => { setSidebarOpen(false) }} />}
       <aside className={css.sidebarRegion}>
         {renderSlot('dashboard.sidebar', sidebarOwner, {
-          fallback: <AgentNav {...sidebarOwner} t={t} />,
+          fallback: <AgentNav {...sidebarOwner} onClose={() => { setSidebarOpen(false) }} t={t} />,
         })}
       </aside>
       <main className={css.mainRegion}>

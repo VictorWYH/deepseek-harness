@@ -375,6 +375,15 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
+/* Hide the native hero workspace picker (chip + slot): the per-Agent
+   default workspace auto-connect replaces it. The chip is localized to
+   zh ("选择工作区") and en ("Choose workspace"); cover both. */
+.conversationRegion :global(button[aria-label="选择工作区"]),
+.conversationRegion :global(button[aria-label="Choose workspace"]),
+.conversationRegion :global([data-slot="conversation.hero.workspace"]) {
+  display: none;
+}
+
 @media (max-width: 720px) {
   .frame {
     display: block;

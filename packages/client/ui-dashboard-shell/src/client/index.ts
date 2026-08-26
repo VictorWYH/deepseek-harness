@@ -116,8 +116,8 @@ export function apply(ctx: ClientContext): void {
       const existing = workspaces.items.find(workspace => workspace.path === target)
       // Already connected: the current session lives in this Agent's Workspace.
       if (current !== undefined && existing !== undefined
-        && (current.cwd === target || existing.sessionIds.includes(current.id))) {
-        return current.id
+        && (current.cwd === target || existing.sessionIds.includes(currentId))) {
+        return currentId
       }
       const workspace = existing ?? await (async () => {
         await ensureAgentWorkspaceDirs(api, home, agentId)

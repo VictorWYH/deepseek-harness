@@ -206,57 +206,33 @@ describe('DashboardFrame product shell', () => {
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
   })
 
-  it('auto-opens the Agent session when its default workspace exists', async () => {
+  it('auto-connects the default Agent workspace on mount and opens its session', async () => {
     const b = mount()
-    b.state.workspaces = {
-      ...b.state.workspaces,
-      items: [
-        ...b.state.workspaces.items,
-        workspace('ws-coder', ['s-coder'], 'H:/home/dashboard/coder'),
-      ],
-    }
-    b.rerender()
-    // The shared New Session action targets the Agent's default workspace with the resolved preset.
     await vi.waitFor(() => {
-      expect(b.startSession).toHaveBeenCalledWith('ws-coder', 'standard')
+      expect(b.ensureAgentWorkspace).toHaveBeenCalledWith('coder', 'standard')
+    })
+    // The ensured session id differs from the current one → opened.
+    await vi.waitFor(() => {
+      expect(b.openSession).toHaveBeenCalledWith('auto-s1')
     })
   })
 
-  it('auto-opens the newly selected Agent default workspace', async () => {
+  it('auto-connects the newly selected Agent default workspace', async () => {
     const b = mount()
-    b.state.workspaces = {
-      ...b.state.workspaces,
-      items: [
-        ...b.state.workspaces.items,
-        workspace('ws-coder', ['s-coder'], 'H:/home/dashboard/coder'),
-        workspace('ws-invest', ['s-invest'], 'H:/home/dashboard/invest'),
-      ],
-    }
     b.rerender()
     fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     await vi.waitFor(() => {
-      expect(b.startSession).toHaveBeenLastCalledWith('ws-invest', 'standard')
+      expect(b.ensureAgentWorkspace).toHaveBeenLastCalledWith('invest', 'standard')
     })
   })
 
-  it('does not re-open when the current session already lives in the Agent workspace', async () => {
-    const b = mount()
-    b.state.sessions = {
-      ...b.state.sessions,
-      byId: { ...b.state.sessions.byId, s1: { ...b.state.sessions.byId.s1!, cwd: 'H:/home/dashboard/coder' } },
-    }
-    b.state.workspaces = {
-      ...b.state.workspaces,
-      items: [
-        ...b.state.workspaces.items,
-        workspace('ws-coder', ['s1'], 'H:/home/dashboard/coder'),
-      ],
-    }
-    b.rerender()
-    // The current session is already inside the Agent workspace → no auto action.
+  it('does not re-open a session already inside the Agent workspace', async () => {
+    // The ensured session equals the current one ('s1') — the frame skips the open.
+    const b = mount(SHIPPED_PRESETS, 's1')
     await vi.waitFor(() => {
-      expect(b.startSession).not.toHaveBeenCalled()
+      expect(b.ensureAgentWorkspace).toHaveBeenCalledWith('coder', 'standard')
     })
+    expect(b.openSession).not.toHaveBeenCalled()
   })
 
   it('shows an explicit init state when the Agent has no default workspace', async () => {

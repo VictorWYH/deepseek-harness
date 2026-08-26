@@ -276,6 +276,7 @@ export function DashboardFrame({
   openSession,
   startSession,
   resolveAgentPresets,
+  ensureAgentWorkspace,
   t,
   renderSlot,
 }: DashboardFrameComponentProps) {
@@ -315,26 +316,20 @@ export function DashboardFrame({
   }, [availablePresets, selectedAgent])
   /** Surface a missing-preset notice only when NO usable preset resolved —
    *  neither the Agent's mapped preset nor the deployment default exists. */
-  // The selected Agent's default Workspace, resolved by its stable path
-  // (`<home>/dashboard/<agentId>`) so no home lookup is needed here.
-  const agentWorkspace = useMemo(
-    () => workspaces.items.find(workspace => isAgentWorkspacePath(workspace.path, selectedAgent.id)),
-    [workspaces, selectedAgent],
-  )
-  /** The current session already lives inside the Agent's default Workspace. */
-  const alreadyInside = sessions.current !== undefined
-    && agentWorkspace !== undefined
-    && (sessions.byId[sessions.current]?.cwd === agentWorkspace.path
-      || agentWorkspace.sessionIds.includes(sessions.current))
-  // Auto-open the selected Agent's default Workspace once the baselines are
-  // ready: the shared New Session action reuses-or-creates its blank session
-  // and opens it, so an existing workspace becomes immediately conversable.
-  // Without one the dashboard surfaces an explicit init state instead (the
-  // hero workspace picker stays optional, never a requirement).
+  // Auto-create-and-connect the selected Agent's default Workspace once the
+  // baselines are ready: the injected action ensures `<home>/dashboard/<agentId>`
+  // exists (creating the directory + registering the Workspace idempotently),
+  // connects its blank Session, and returns the session id. The frame opens it,
+  // so a fresh home becomes immediately conversable with no workspace picker.
   useEffect(() => {
-    if (!workspaces.baselinesReady || agentWorkspace === undefined || alreadyInside) return
-    startSession(agentWorkspace.workspaceId, usablePreset)
-  }, [workspaces.baselinesReady, agentWorkspace, alreadyInside, usablePreset, startSession])
+    if (!workspaces.baselinesReady) return
+    let cancelled = false
+    void ensureAgentWorkspace(selectedAgent.id, usablePreset).then(
+      (sessionId) => { if (!cancelled && sessions.current !== sessionId) openSession(sessionId) },
+      (reason: unknown) => { if (!cancelled) console.warn('dashboard: auto-connect failed:', reason) },
+    )
+    return () => { cancelled = true }
+  }, [ensureAgentWorkspace, openSession, selectedAgent.id, usablePreset, workspaces.baselinesReady])
 
   const presetNotice = useMemo(() => {
     if (availablePresets === null) return undefined
@@ -361,8 +356,9 @@ export function DashboardFrame({
   /** Explicit init state: baselines ready but the Agent has no default Workspace. */
   const workspaceNotice = useMemo(() => {
     if (!workspaces.baselinesReady) return undefined
-    return agentWorkspace === undefined ? t('workspace.none') : undefined
-  }, [workspaces.baselinesReady, agentWorkspace, t])
+    const hasDefault = workspaces.items.some(workspace => isAgentWorkspacePath(workspace.path, selectedAgent.id))
+    return hasDefault ? undefined : t('workspace.none')
+  }, [workspaces.baselinesReady, workspaces.items, selectedAgent.id, t])
 
   const sidebarOwner: DashboardSidebarOwnerProps = {
     agents,

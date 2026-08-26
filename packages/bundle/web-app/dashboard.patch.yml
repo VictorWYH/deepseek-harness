@@ -86,9 +86,6 @@
 - id: ui-message-feedback
   disabled: true
 
-- id: ui-permission
-  disabled: true
-
 # Agent-preset row in General settings.
 - id: ui-agent-preset
   disabled: true
@@ -118,5 +115,6 @@
 # ui-model-selection:  the composer model seat (`conversation.input.model`) —
 #                      the ONE control that clears a composer block.
 # ui-attachment:       the composer attachment seat (`conversation.input.attachments`).
+# ui-permission:       the composer access-control chip (clears/steers permission).
 # ui-settings:         host-plane settings service the conversation surface needs.
 # ui-renderer:         mounts the React application into the boot kernel.

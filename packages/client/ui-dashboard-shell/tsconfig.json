@@ -24,6 +24,9 @@
       "path": "../ui-layout"
     },
     {
+      "path": "../ui-workspace"
+    },
+    {
       "path": "../../api/remotes/tsconfig.client.json"
     },
     {

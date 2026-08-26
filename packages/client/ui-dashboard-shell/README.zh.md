@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-产品壳插件（Agent-native Dashboard 第一阶段）：深色两栏产品框架，注册进运行时内建 `root` 槽，优先级为 `-1`（最低者渲染），从而遮蔽原生 AppFrame 的优先级 0 注册并接管整个浏览器界面。[web-app bundle](../../bundle/web-app/cordis.patch.yml) 已禁用原生界面（ui-layout / ui-sidebar / ui-conversation 及占用其席位的各个功能），保留底层服务（client-runtime、ui-renderer、ui-theme、locale、ui-settings）与本壳。
+产品壳插件（Agent-native Dashboard 第一阶段）：深色两栏产品框架，注册进运行时内建 `root` 槽，优先级为 `-1`（最低者渲染），从而遮蔽原生 AppFrame 的优先级 0 注册并接管整个浏览器界面。本壳为可选启用：随附的 [web-app bundle](../../bundle/web-app/cordis.patch.yml) 保持原生不变，由 [dashboard overlay](../../bundle/web-app/dashboard.patch.yml) 插入本壳，将 `ui-layout` 设为 `registerRoot: false`，禁用原生界面（ui-sidebar / ui-settings-* / ui-brand-official / ui-workspace / ui-input-trigger / ui-commands / ui-skill / ui-subagent / ui-reference / ui-jobs / ui-goal / ui-message-feedback / ui-model-selection / ui-permission-presets / ui-agent-preset / ui-settings-plugins / ui-plan / ui-user-questions / ui-trajectory 及对话相邻功能席位），保留底层服务（client-runtime、ui-renderer、ui-theme、locale、ui-settings）与 `ui-conversation`，使 Dashboard 主区可以重新托管真实聊天界面。
 
 框架以组件本地状态持有 Agent 选择，并把只读的 `useSessions` / `useWorkspaces` 标准 hooks 投影到所选 Agent 的工作台：统计卡片（工作区 / 会话 / 运行中计数）以及按工作区分组的会话列表。点击会话行即通过运行时 sessions 服务打开；**新建会话**调用运行时共享的 New Session 流程（`workspaces.startSession`），可全局或按工作区发起。
 

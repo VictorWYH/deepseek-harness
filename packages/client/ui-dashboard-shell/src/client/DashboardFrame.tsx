@@ -114,7 +114,7 @@ function AgentNav({
   t,
 }: DashboardSidebarOwnerProps & { t: DashboardFrameComponentProps['t'] }) {
   return (
-    <nav className={css.agentNav} aria-label={t('nav.agents')}>
+    <nav className={css.agentNav} aria-label={t('nav.agents')} data-agent-selected={selectedAgentId}>
       <div className={css.shellTitle}>{t('shell.title')}</div>
       <ul className={css.agentList}>
         {agents.map(agent => (
@@ -123,6 +123,8 @@ function AgentNav({
               type="button"
               className={agent.id === selectedAgentId ? clsx(css.agentItem, css.agentItemActive) : css.agentItem}
               aria-pressed={agent.id === selectedAgentId}
+              data-agent-id={agent.id}
+              data-agent-selected={agent.id === selectedAgentId}
               onClick={() => { onSelectAgent(agent.id) }}
             >
               <span className={css.agentMark} aria-hidden="true">{agent.id.slice(0, 1).toUpperCase()}</span>
@@ -132,7 +134,7 @@ function AgentNav({
         ))}
       </ul>
       <div className={css.sidebarFoot}>
-        <button type="button" className={css.newSessionButton} onClick={onNewSession}>
+        <button type="button" className={css.newSessionButton} data-new-session onClick={onNewSession}>
           {t('session.new')}
         </button>
       </div>
@@ -186,7 +188,7 @@ function AgentDashboard({
           <h1 className={css.dashboardTitle}>{selectedAgentLabel}</h1>
           <span className={css.dashboardAgentId}>{selectedAgentId}</span>
         </div>
-        <button type="button" className={css.newSessionButton} onClick={() => { startSession() }}>
+        <button type="button" className={css.newSessionButton} data-new-session onClick={() => { startSession() }}>
           {t('session.new')}
         </button>
       </header>
@@ -329,7 +331,7 @@ export function DashboardFrame({
   }
 
   return (
-    <div className={css.frame}>
+    <div className={css.frame} data-dsh-shell="dashboard">
       <aside className={css.sidebarRegion}>
         {renderSlot('dashboard.sidebar', sidebarOwner, {
           fallback: <AgentNav {...sidebarOwner} t={t} />,
@@ -355,7 +357,7 @@ export function DashboardFrame({
         {/* The re-hosted conversation seat: ui-conversation's ConversationRoot
             renders the hero when no session is current and the live chat when
             one is — the Dashboard main region hosts it below the Agent board. */}
-        <section className={css.conversationRegion}>
+        <section className={css.conversationRegion} data-conversation-host>
           {renderSlot('conversation', {})}
         </section>
       </main>

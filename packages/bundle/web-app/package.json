@@ -27,6 +27,7 @@
       "default": "./lib/invariant.js"
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
+    "./dashboard.patch.yml": "./dashboard.patch.yml",
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -35,6 +36,7 @@
     "lib/invariant.js",
     "lib/startup.js",
     "cordis.patch.yml",
+    "dashboard.patch.yml",
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",

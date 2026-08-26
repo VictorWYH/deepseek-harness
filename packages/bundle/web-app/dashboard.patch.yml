@@ -1,0 +1,130 @@
+# Dashboard Web Shell overlay: applied on top of the shipped web-app bundle
+# (packages/bundle/web-app/cordis.patch.yml) as a `--patch` overlay or the web
+# e2e scaffold's `extraOverlayPath`.
+#
+# This layer does NOT touch the shipped surface: `dsh web` without this file
+# stays the native Workspace/Session shell. Applying this file replaces the
+# product chrome with the Agent-first Dashboard shell while keeping the real
+# conversation surface (ui-conversation) and the host-plane services the
+# conversation surface depends on (ui-layout's ctx.layout service, ui-settings,
+# ui-renderer, directory-picker, locale).
+#
+# Patch semantics: rows are matched by id; `- insert:` appends new rows. A row
+# this file targets that is absent from the shipped tree stays a Loader
+# warning (single overlay shared across surfaces), so this file is safe to keep
+# mounted even if the native roster renames a row.
+
+# The Dashboard shell owns the built-in 'root' slot at priority -1 (its
+# package.json dsh.client block marks it platform web; the modules node half
+# picks it up into window.__DSH_BOOT__ like every other client row).
+- insert:
+    - id: ui-dashboard-shell
+      name: '@deepseek-ai/dsh-client-ui-dashboard-shell'
+
+# ui-layout is disabled wholesale: the Dashboard shell owns 'root' at priority
+# -1 and declares its own child seats (including the re-hosted
+# 'conversation'/'details'), and two root registrations declaring the same
+# child seats collide at apply time. ui-conversation's `ctx.layout` inject is
+# satisfied by the Dashboard shell's own layout service shim (see
+# packages/client/ui-dashboard-shell), so no panel service is lost.
+- id: ui-layout
+  disabled: true
+
+# ── native chrome disabled for the Dashboard composition ────────────────────
+# Each row below is replaced with a disabled row; the underlying package stays
+# in the bundle (dependency of web-app) so re-enabling is one patch away.
+
+- id: ui-sidebar
+  disabled: true
+
+- id: ui-settings-general
+  disabled: true
+
+- id: ui-settings-models
+  disabled: true
+
+- id: ui-settings-plugin-inventory
+  disabled: true
+
+# Official occupants for the generic sidebar and conversation brand slots.
+- id: ui-brand-official
+  disabled: true
+
+- id: ui-attachment
+  disabled: true
+
+# Tool call tree, generic fallback, and keyed business Tool views.
+- id: ui-tool
+  disabled: true
+
+- id: ui-cordis
+  disabled: true
+
+# Durable workflow lifecycle as an independent Chat node.
+- id: ui-workflow-run
+  disabled: true
+
+# Turn tail: produced-files row under each closing assistant message.
+- id: ui-deliverables
+  disabled: true
+
+- id: ui-workspace
+  disabled: true
+
+# Input triggers, command surface, and reference sources.
+- id: ui-input-trigger
+  disabled: true
+
+- id: ui-commands
+  disabled: true
+
+- id: ui-skill
+  disabled: true
+
+- id: ui-subagent
+  disabled: true
+
+- id: ui-reference
+  disabled: true
+
+# Background jobs list.
+- id: ui-jobs
+  disabled: true
+
+# Goal surface.
+- id: ui-goal
+  disabled: true
+
+# Per-message feedback.
+- id: ui-message-feedback
+  disabled: true
+
+# Model selection (/model popupSelect + composer seat).
+- id: ui-model-selection
+  disabled: true
+
+- id: ui-permission
+  disabled: true
+
+# Agent-preset row in General settings.
+- id: ui-agent-preset
+  disabled: true
+
+# Plugin configuration cards.
+- id: ui-settings-plugins
+  disabled: true
+
+# Plan control.
+- id: ui-plan
+  disabled: true
+
+- id: ui-user-questions
+  disabled: true
+
+- id: ui-trajectory
+  disabled: true
+
+# ── intentionally left live ──────────────────────────────────────────────────
+# ui-conversation: the Dashboard main region re-hosts its conversation seat.
+# ui-settings:      host-plane settings service the conversation surface needs.
+# ui-renderer:      mounts the React application into the boot kernel.

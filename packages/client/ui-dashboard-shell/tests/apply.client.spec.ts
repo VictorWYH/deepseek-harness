@@ -181,7 +181,7 @@ describe('ui-dashboard-shell apply', () => {
   it('returns the current session unchanged when it already lives in the Agent workspace', async () => {
     const { bench: b, injected } = await mount()
     b.setWorkspaces({ items: [workspaceView('ws-invest', agentPath('invest'), ['s-invest'])] })
-    b.setSessions({ ids: ['s-invest'], byId: { 's-invest': { cwd: agentPath('invest'), blank: true } }, current: 's-invest' })
+    b.setSessions({ ids: ['s-invest'], byId: { 's-invest': { id: 's-invest', cwd: agentPath('invest'), blank: true } }, current: 's-invest' })
     const sessionId = await injected.ensureAgentWorkspace('invest', 'standard')
     expect(sessionId).toBe('s-invest')
     expect(b.createDirectory).not.toHaveBeenCalled()

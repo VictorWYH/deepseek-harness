@@ -1,0 +1,317 @@
+/* Product shell chrome. Semantic --dsw-alias-* tokens only (docs/web-styling.md);
+   light/dark variants come from the theme owner, never from this sheet. */
+
+.frame {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+}
+
+.sidebarRegion {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden auto;
+  background: var(--dsw-alias-bg-layer-3);
+  border-right: 1px solid var(--dsw-alias-border-l2);
+}
+
+.mainRegion {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden auto;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+/* ── Agent navigation rail (dashboard.sidebar fallback) ─────────────────── */
+
+.agentNav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding: 16px 12px;
+}
+
+.shellTitle {
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-secondary);
+  letter-spacing: 0.02em;
+}
+
+.agentList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agentItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.agentItem:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.agentItemActive,
+.agentItemActive:hover {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+}
+
+.agentMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-multi-select);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.agentLabel {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebarFoot {
+  padding-top: 8px;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+}
+
+/* ── Shared action buttons ──────────────────────────────────────────────── */
+
+.newSessionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-inverted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.newSessionButton:hover {
+  background: var(--dsw-alias-button-primary-hover);
+}
+
+/* ── Agent dashboard (dashboard.main fallback) ──────────────────────────── */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1080px;
+  padding: 24px 28px;
+}
+
+.dashboardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dashboardHeading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dashboardTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboardAgentId {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-3);
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.sessionGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sessionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.groupTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupNew {
+  flex: none;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-brand-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.groupNew:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.sessionList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sessionRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.sessionRowCurrent {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+  border-color: var(--dsw-alias-border-l2);
+}
+
+.statusDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-dimmed);
+}
+
+.statusRunning {
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.sessionTitle {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessionMeta {
+  flex: none;
+  max-width: 220px;
+  margin-left: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.currentBadge {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 11px;
+}
+
+.empty,
+.loading {
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}

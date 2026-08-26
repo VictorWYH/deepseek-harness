@@ -54,7 +54,7 @@ userId + agentId + profileId + workspaceId + memoryScope + permissionPolicy
 ## 分阶段实施
 
 1. **隔离启动基线**：为 native/dashboard 实例提供显式配置、启动脚本/文档和验证检查；确认 3080/3081 不共享代码产物、Home、Profile、Session、Memory 或凭据。
-2. **Shell 选择骨架**：新增独立 Dashboard Shell 包或入口，能在不影响原生 Shell 的情况下构建和启动；Dashboard Shell 先展示 Agent/Session 的静态运行时占位结构。
+2. **Shell 选择骨架**：新增独立 Dashboard Shell 包或入口，能在不影响原生 Shell 的情况下构建和启动；Dashboard Shell 先展示 Agent/Session 的静态运行时占位结构。第一阶段采用 Web bundle patch 启用 Dashboard Shell；开发验证使用 3082，避免重启当前 3081 会话。
 3. **Runtime 接入**：复用现有 DSH Client Runtime/RPC，形成 Dashboard 侧可用的 Session、Workspace、Event 调用面。
 4. **多用户模型**：在 Dashboard Shell/Adapter 层实现登录、权限、Agent 映射、用户 Session 隔离和审计；Profile 作为 Session 创建时的不可变元数据保存。
 5. **生产部署**：服务器 Workspace、独立 Home、服务账户、反向代理、TLS、备份和恢复演练。

@@ -22,6 +22,7 @@ import type {
   DashboardSidebarOwnerProps,
 } from './contract/slots.ts'
 import type { DashboardKey } from './locales.ts'
+import { isAgentWorkspacePath } from './agent-workspace.ts'
 import { presetForAgent, resolveAgentPreset } from './presets.ts'
 import css from './DashboardFrame.module.css'
 
@@ -169,6 +170,7 @@ function AgentDashboard({
   openSession,
   startSession,
   presetNotice,
+  workspaceNotice,
   t,
 }: {
   selectedAgentId: string
@@ -180,6 +182,7 @@ function AgentDashboard({
   openSession: (sessionId: SessionId) => void
   startSession: (workspaceId?: WorkspaceId) => void
   presetNotice: string | undefined
+  workspaceNotice: string | undefined
   t: DashboardFrameComponentProps['t']
 }) {
   const cards: StatValue[] = [
@@ -201,6 +204,10 @@ function AgentDashboard({
 
       {presetNotice !== undefined && (
         <p className={css.presetNotice} role="status">{presetNotice}</p>
+      )}
+
+      {workspaceNotice !== undefined && (
+        <p className={css.presetNotice} role="status">{workspaceNotice}</p>
       )}
 
       <section className={css.statsRow} aria-label={t('shell.title')}>
@@ -269,7 +276,6 @@ export function DashboardFrame({
   openSession,
   startSession,
   resolveAgentPresets,
-  ensureAgentWorkspace,
   t,
   renderSlot,
 }: DashboardFrameComponentProps) {
@@ -309,18 +315,26 @@ export function DashboardFrame({
   }, [availablePresets, selectedAgent])
   /** Surface a missing-preset notice only when NO usable preset resolved —
    *  neither the Agent's mapped preset nor the deployment default exists. */
-  // Auto-connect the selected Agent's default Workspace after the live
-  // preset roster is available. This is intentionally below the derived
-  // selectedAgent/usablePreset values so render never reads uninitialized data.
+  // The selected Agent's default Workspace, resolved by its stable path
+  // (`<home>/dashboard/<agentId>`) so no home lookup is needed here.
+  const agentWorkspace = useMemo(
+    () => workspaces.items.find(workspace => isAgentWorkspacePath(workspace.path, selectedAgent.id)),
+    [workspaces, selectedAgent],
+  )
+  /** The current session already lives inside the Agent's default Workspace. */
+  const alreadyInside = sessions.current !== undefined
+    && agentWorkspace !== undefined
+    && (sessions.byId[sessions.current]?.cwd === agentWorkspace.path
+      || agentWorkspace.sessionIds.includes(sessions.current))
+  // Auto-open the selected Agent's default Workspace once the baselines are
+  // ready: the shared New Session action reuses-or-creates its blank session
+  // and opens it, so an existing workspace becomes immediately conversable.
+  // Without one the dashboard surfaces an explicit init state instead (the
+  // hero workspace picker stays optional, never a requirement).
   useEffect(() => {
-    if (!workspaces.baselinesReady) return
-    let cancelled = false
-    void ensureAgentWorkspace(selectedAgent.id, usablePreset).then(
-      (sessionId) => { if (!cancelled && sessions.current !== sessionId) openSession(sessionId) },
-      (reason: unknown) => { if (!cancelled) console.warn('dashboard: auto-connect failed:', reason) },
-    )
-    return () => { cancelled = true }
-  }, [ensureAgentWorkspace, openSession, selectedAgent.id, usablePreset, workspaces.baselinesReady])
+    if (!workspaces.baselinesReady || agentWorkspace === undefined || alreadyInside) return
+    startSession(agentWorkspace.workspaceId, usablePreset)
+  }, [workspaces.baselinesReady, agentWorkspace, alreadyInside, usablePreset, startSession])
 
   const presetNotice = useMemo(() => {
     if (availablePresets === null) return undefined
@@ -344,6 +358,11 @@ export function DashboardFrame({
     () => groupSessions(sessions, workspaces, t('group.ungrouped')),
     [sessions, workspaces, t],
   )
+  /** Explicit init state: baselines ready but the Agent has no default Workspace. */
+  const workspaceNotice = useMemo(() => {
+    if (!workspaces.baselinesReady) return undefined
+    return agentWorkspace === undefined ? t('workspace.none') : undefined
+  }, [workspaces.baselinesReady, agentWorkspace, t])
 
   const sidebarOwner: DashboardSidebarOwnerProps = {
     agents,
@@ -380,6 +399,7 @@ export function DashboardFrame({
               openSession={openSession}
               startSession={startWithPreset}
               presetNotice={presetNotice}
+              workspaceNotice={workspaceNotice}
               t={t}
             />
           ),

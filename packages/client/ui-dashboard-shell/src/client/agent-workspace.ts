@@ -35,6 +35,19 @@ export function agentWorkspacesRoot(home: string): string {
   return `${home.replace(/[\\/]+$/, '')}${separator}${DASHBOARD_WORKSPACES_DIR}`
 }
 
+/**
+ * Whether a workspace path is this Agent's default Workspace
+ * (`<home>/dashboard/<agentId>`), matched by stable suffix so the frame can
+ * resolve the Agent's workspace without knowing the DSH home.
+ * @param path - a workspace's canonical path.
+ * @param agentId - the product Agent id.
+ * @returns true when the path ends with `dashboard/<agentId>`.
+ */
+export function isAgentWorkspacePath(path: string, agentId: string): boolean {
+  const normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
+  return normalized.endsWith(`/${DASHBOARD_WORKSPACES_DIR}/${agentId}`)
+}
+
 /** True when a browse error is the host's "directory already exists" code. */
 function isDirectoryExists(reason: unknown): boolean {
   return typeof reason === 'object' && reason !== null && 'code' in reason

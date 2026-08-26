@@ -32,11 +32,13 @@ function summary(id: string, over: Partial<SessionSummary> = {}): SessionSummary
   }
 }
 
-function workspace(id: string, sessionIds: string[]): WorkspaceView {
+function workspace(id: string, sessionIds: string[], path = `H:/work/${id}`): WorkspaceView {
   return {
     workspaceId: id as WorkspaceId,
-    path: `H:/work/${id}`,
-    title: `ws-${id}`,
+    path,
+    // Default fixture workspaces keep their `ws-<id>` display titles; the
+    // Agent-default fixtures take their folder basename.
+    title: path === `H:/work/${id}` ? `ws-${id}` : (path.split('/').pop() ?? id),
     sessionIds: sessionIds as WorkspaceView['sessionIds'],
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
@@ -204,32 +206,64 @@ describe('DashboardFrame product shell', () => {
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
   })
 
-  it('auto-connects the default Agent workspace on mount and opens the session', async () => {
+  it('auto-opens the Agent session when its default workspace exists', async () => {
     const b = mount()
+    b.state.workspaces = {
+      ...b.state.workspaces,
+      items: [
+        ...b.state.workspaces.items,
+        workspace('ws-coder', ['s-coder'], 'H:/home/dashboard/coder'),
+      ],
+    }
+    b.rerender()
+    // The shared New Session action targets the Agent's default workspace with the resolved preset.
     await vi.waitFor(() => {
-      expect(b.ensureAgentWorkspace).toHaveBeenCalledWith('coder', 'standard')
-    })
-    // The connected session differs from the current one → opened.
-    await vi.waitFor(() => {
-      expect(b.openSession).toHaveBeenCalledWith('auto-s1')
+      expect(b.startSession).toHaveBeenCalledWith('ws-coder', 'standard')
     })
   })
 
-  it('auto-connects the newly selected Agent workspace', async () => {
+  it('auto-opens the newly selected Agent default workspace', async () => {
     const b = mount()
+    b.state.workspaces = {
+      ...b.state.workspaces,
+      items: [
+        ...b.state.workspaces.items,
+        workspace('ws-coder', ['s-coder'], 'H:/home/dashboard/coder'),
+        workspace('ws-invest', ['s-invest'], 'H:/home/dashboard/invest'),
+      ],
+    }
+    b.rerender()
     fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     await vi.waitFor(() => {
-      expect(b.ensureAgentWorkspace).toHaveBeenCalledWith('invest', 'standard')
+      expect(b.startSession).toHaveBeenLastCalledWith('ws-invest', 'standard')
     })
   })
 
-  it('does not reopen a session already inside the Agent workspace', async () => {
-    // The resolved session equals the current one ('s1') — the frame skips the open.
-    const b = mount(SHIPPED_PRESETS, 's1')
+  it('does not re-open when the current session already lives in the Agent workspace', async () => {
+    const b = mount()
+    b.state.sessions = {
+      ...b.state.sessions,
+      byId: { ...b.state.sessions.byId, s1: { ...b.state.sessions.byId.s1!, cwd: 'H:/home/dashboard/coder' } },
+    }
+    b.state.workspaces = {
+      ...b.state.workspaces,
+      items: [
+        ...b.state.workspaces.items,
+        workspace('ws-coder', ['s1'], 'H:/home/dashboard/coder'),
+      ],
+    }
+    b.rerender()
+    // The current session is already inside the Agent workspace → no auto action.
     await vi.waitFor(() => {
-      expect(b.ensureAgentWorkspace).toHaveBeenCalledWith('coder', 'standard')
+      expect(b.startSession).not.toHaveBeenCalled()
     })
-    expect(b.openSession).not.toHaveBeenCalled()
+  })
+
+  it('shows an explicit init state when the Agent has no default workspace', async () => {
+    mount()
+    await vi.waitFor(() => {
+      expect(screen.getByText(/no default workspace yet/i)).toBeTruthy()
+    })
   })
 
   it('shows ungrouped sessions and the loading line before baselines are ready', () => {

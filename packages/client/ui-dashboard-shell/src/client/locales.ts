@@ -21,6 +21,7 @@ export const zh = {
   'sessions.empty': '暂无会话',
   'group.ungrouped': '未分组',
   'preset.missing': '未安装 preset「{preset}」，将使用默认配置',
+  'workspace.none': '该 Agent 还没有默认工作区，点击「新建会话」后即可开始对话（也可在下方选择工作区）。',
 } satisfies Record<string, string>
 
 /** The dashboard namespace key union. */
@@ -47,4 +48,5 @@ export const en = {
   'sessions.empty': 'No sessions yet',
   'group.ungrouped': 'Ungrouped',
   'preset.missing': 'Preset "{preset}" is not installed; the default composition will be used',
+  'workspace.none': 'This Agent has no default workspace yet. Click "New session" to start, or pick a workspace below.',
 } satisfies Record<DashboardKey, string>

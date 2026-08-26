@@ -100,6 +100,19 @@ export type DashboardShellInjected = {
    * @returns the available preset ids.
    */
   resolveAgentPresets: () => Promise<ReadonlySet<string>>
+  /**
+   * Ensure the selected Agent's default Workspace exists and its blank
+   * Session is connected, returning the session to open. The workspace lives
+   * at `<DSH home>/dashboard/<agentId>`; the folder is created on demand and
+   * the path registered idempotently, so a fresh home becomes immediately
+   * conversable without the workspace picker. When the current session
+   * already lives in the Agent's Workspace it is returned unchanged.
+   * @param agentId - the product Agent id (workspace key segment).
+   * @param agentPreset - optional composition preset for a freshly created
+   *   session; an existing blank born under a different preset is not reused.
+   * @returns the connected (reused or new) session id.
+   */
+  ensureAgentWorkspace: (agentId: string, agentPreset?: string) => Promise<SessionId>
 }
 
 /**

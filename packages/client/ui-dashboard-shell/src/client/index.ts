@@ -11,6 +11,7 @@
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
+import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: the panel-action face ui-conversation reaches through ctx.layout.
@@ -19,6 +20,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 // package provides the layout service shim itself.
 import type { ILayout } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { DashboardShellInjected } from './contract/slots.ts'
+import { agentWorkspacePath, ensureAgentWorkspaceDirs } from './agent-workspace.ts'
 import { DashboardFrame } from './DashboardFrame.tsx'
 import { en, zh, type DashboardKey } from './locales.ts'
 
@@ -80,6 +82,61 @@ export function apply(ctx: ClientContext): void {
     return new Set(response.result.value.presets.map(preset => preset.id))
   }
 
+  /** The DSH home, resolved once and cached (a failure retries on next use). */
+  let homePromise: Promise<string> | undefined
+  const describeHome = async (): Promise<string> => {
+    if (homePromise === undefined) {
+      homePromise = (async () => {
+        const { api } = ctx.get('connection') as ConnectionHandle
+        const response = await api.host.describe({})
+        if (!response.result.ok) throw new Error(`host.describe failed: ${response.result.error.message}`)
+        return response.result.value.home
+      })().catch((reason: unknown) => {
+        homePromise = undefined
+        throw reason
+      })
+    }
+    return homePromise
+  }
+
+  /** Coalesces concurrent ensures per Agent+preset key. */
+  const ensuring = new Map<string, Promise<SessionId>>()
+  const ensureAgentWorkspace = (agentId: string, agentPreset?: string): Promise<SessionId> => {
+    const key = `${agentId}:${agentPreset ?? ''}`
+    const inFlight = ensuring.get(key)
+    if (inFlight !== undefined) return inFlight
+    const attempt = (async () => {
+      const { api } = ctx.get('connection') as ConnectionHandle
+      const home = await describeHome()
+      const target = agentWorkspacePath(home, agentId)
+      const workspaces = ctx.workspaces.list.getSnapshot()
+      const sessionList = ctx.sessions.list.getSnapshot()
+      const currentId = sessionList.current
+      const current = currentId === undefined ? undefined : sessionList.byId[currentId]
+      const existing = workspaces.items.find(workspace => workspace.path === target)
+      // Already connected: the current session lives in this Agent's Workspace.
+      if (current !== undefined && existing !== undefined
+        && (current.cwd === target || existing.sessionIds.includes(currentId))) {
+        return currentId
+      }
+      const workspace = existing ?? await (async () => {
+        await ensureAgentWorkspaceDirs(api, home, agentId)
+        return ctx.workspaces.create({ path: target })
+      })()
+      let preset: string | undefined = agentPreset
+      if (preset !== undefined) {
+        const available = await resolvePresetIds()
+        if (!available.has(preset)) {
+          console.warn(`ui-dashboard-shell: agent preset "${preset}" is not installed; using the deployment default`)
+          preset = undefined
+        }
+      }
+      return ctx.workspaces.connectWorkspace(workspace.workspaceId, preset)
+    })().finally(() => { ensuring.delete(key) })
+    ensuring.set(key, attempt)
+    return attempt
+  }
+
   const injectProps = (): DashboardShellInjected => ({
     // The shell's Session actions ride the runtime's shared flows; the frame
     // stays a pure props component.
@@ -100,6 +157,7 @@ export function apply(ctx: ClientContext): void {
       ctx.workspaces.startSession(workspaceId, preset)
     },
     resolveAgentPresets: resolvePresetIds,
+    ensureAgentWorkspace,
   })
 
   ctx.effect(

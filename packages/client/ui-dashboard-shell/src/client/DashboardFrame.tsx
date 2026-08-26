@@ -269,6 +269,7 @@ export function DashboardFrame({
   openSession,
   startSession,
   resolveAgentPresets,
+  ensureAgentWorkspace,
   t,
   renderSlot,
 }: DashboardFrameComponentProps) {
@@ -308,6 +309,19 @@ export function DashboardFrame({
   }, [availablePresets, selectedAgent])
   /** Surface a missing-preset notice only when NO usable preset resolved —
    *  neither the Agent's mapped preset nor the deployment default exists. */
+  // Auto-connect the selected Agent's default Workspace after the live
+  // preset roster is available. This is intentionally below the derived
+  // selectedAgent/usablePreset values so render never reads uninitialized data.
+  useEffect(() => {
+    if (!workspaces.baselinesReady) return
+    let cancelled = false
+    void ensureAgentWorkspace(selectedAgent.id, usablePreset).then(
+      (sessionId) => { if (!cancelled && sessions.current !== sessionId) openSession(sessionId) },
+      (reason: unknown) => { if (!cancelled) console.warn('dashboard: auto-connect failed:', reason) },
+    )
+    return () => { cancelled = true }
+  }, [ensureAgentWorkspace, openSession, selectedAgent.id, usablePreset, workspaces.baselinesReady])
+
   const presetNotice = useMemo(() => {
     if (availablePresets === null) return undefined
     const resolved = resolveAgentPreset(selectedAgent.id, availablePresets)

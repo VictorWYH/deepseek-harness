@@ -9,11 +9,42 @@ import type { DashboardShellInjected } from '@deepseek-ai/dsh-client-ui-dashboar
 /** Installed roster the bench's connection reports (the shipped preset set). */
 const INSTALLED_PRESETS = ['code', 'cordis', 'minimal', 'standard']
 
+/** Host home the bench's connection reports. */
+const HOME = 'H:/dsh-home'
+/** The default Workspace path for an Agent under that home. */
+const agentPath = (agentId: string) => `${HOME}/dashboard/${agentId}`
+
+function workspaceView(id: string, path: string, sessionIds: string[] = []) {
+  return {
+    workspaceId: id,
+    path,
+    title: path.split('/').pop()!,
+    sessionIds,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  }
+}
+
 async function bench() {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
-  const sessions = { open: vi.fn(), clear: vi.fn() }
-  const workspaces = { startSession: vi.fn() }
+  let workspaceSnapshot = { items: [] as ReturnType<typeof workspaceView>[], archivedSessionIds: [] as string[], phase: 'ready', baselinesReady: true }
+  let sessionSnapshot = { ids: [] as string[], byId: {} as Record<string, { cwd?: string; agentPreset?: string; blank?: boolean }>, current: undefined as string | undefined, phase: 'ready' }
+  const sessions = {
+    open: vi.fn(),
+    clear: vi.fn(),
+    list: { getSnapshot: () => sessionSnapshot },
+  }
+  const workspaces = {
+    startSession: vi.fn(),
+    create: vi.fn().mockImplementation(async ({ path }: { path: string }) => {
+      const view = workspaceView(`ws-${path}`, path)
+      workspaceSnapshot = { ...workspaceSnapshot, items: [...workspaceSnapshot.items, view] }
+      return view
+    }),
+    connectWorkspace: vi.fn().mockResolvedValue('s-auto'),
+    list: { getSnapshot: () => workspaceSnapshot },
+  }
   const agentPresetList = vi.fn().mockResolvedValue({
     result: {
       ok: true,
@@ -24,12 +55,41 @@ async function bench() {
       },
     },
   })
-  ctx.provide('connection', { api: { agentPresets: { list: agentPresetList } } } as never)
+  const hostDescribe = vi.fn().mockResolvedValue({
+    result: {
+      ok: true,
+      value: { version: 'test', cwd: HOME, home: HOME, attachedSessions: 0, canOpenPath: false },
+    },
+  })
+  const createDirectory = vi.fn().mockResolvedValue({ result: { ok: true, value: { path: '' } } })
+  ctx.provide('connection', {
+    api: {
+      agentPresets: { list: agentPresetList },
+      host: { describe: hostDescribe, createDirectory },
+    },
+  } as never)
   ctx.provide('sessions', sessions as never)
   ctx.provide('workspaces', workspaces as never)
   ctx.provide('locale', new LocaleRuntime(ctx))
   const slots = ctx.get('slots') as SlotRegistry
-  return { ctx, slots, sessions, workspaces, agentPresetList }
+  return {
+    ctx, slots, sessions, workspaces, agentPresetList, hostDescribe, createDirectory,
+    setWorkspaces(next: { items: ReturnType<typeof workspaceView>[] }) {
+      workspaceSnapshot = { ...workspaceSnapshot, items: next.items }
+    },
+    setSessions(next: {
+      ids?: string[]
+      byId?: Record<string, { cwd?: string; agentPreset?: string; blank?: boolean }>
+      current?: string | undefined
+    }) {
+      sessionSnapshot = {
+        ids: next.ids ?? sessionSnapshot.ids,
+        byId: next.byId ?? sessionSnapshot.byId,
+        current: next.current === undefined ? sessionSnapshot.current : next.current,
+        phase: 'ready',
+      }
+    },
+  }
 }
 
 async function mount(): Promise<{ bench: Awaited<ReturnType<typeof bench>>; injected: DashboardShellInjected }> {
@@ -65,7 +125,7 @@ describe('ui-dashboard-shell apply', () => {
     // (a duplicate declaration would collide at apply time).
     expect(b.slots.spec('conversation.hero.workspace')).toBeUndefined()
     const injected = (entries[0]!.inject as () => DashboardShellInjected)()
-    expect(Object.keys(injected)).toEqual(['openSession', 'startSession', 'resolveAgentPresets'])
+    expect(Object.keys(injected)).toEqual(['openSession', 'startSession', 'resolveAgentPresets', 'ensureAgentWorkspace'])
     injected.openSession('s1' as never)
     expect(b.sessions.open).toHaveBeenCalledWith('s1')
     // No preset requested → forwarded verbatim.
@@ -90,6 +150,53 @@ describe('ui-dashboard-shell apply', () => {
   it('resolves the installed preset ids from the live roster', async () => {
     const { injected } = await mount()
     await expect(injected.resolveAgentPresets()).resolves.toEqual(new Set(INSTALLED_PRESETS))
+  })
+
+  it('ensures the Agent default workspace and connects its blank session', async () => {
+    const { bench: b, injected } = await mount()
+    const sessionId = await injected.ensureAgentWorkspace('coder', 'standard')
+    expect(sessionId).toBe('s-auto')
+    // Home described once; both namespace dirs created; path registered; blank session connected.
+    expect(b.hostDescribe).toHaveBeenCalledTimes(1)
+    expect(b.createDirectory).toHaveBeenNthCalledWith(1, { path: HOME, name: 'dashboard' })
+    expect(b.createDirectory).toHaveBeenNthCalledWith(2, { path: `${HOME}/dashboard`, name: 'coder' })
+    expect(b.workspaces.create).toHaveBeenCalledWith({ path: agentPath('coder') })
+    expect(b.workspaces.connectWorkspace).toHaveBeenCalledWith(`ws-${agentPath('coder')}`, 'standard')
+    // A second call coalesces on the in-flight promise and does not re-create.
+    await injected.ensureAgentWorkspace('coder', 'standard')
+    expect(b.createDirectory).toHaveBeenCalledTimes(2)
+    expect(b.workspaces.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('reuses an existing Agent workspace without creating directories or registering', async () => {
+    const { bench: b, injected } = await mount()
+    b.setWorkspaces({ items: [workspaceView('ws-existing', agentPath('btender'))] })
+    const sessionId = await injected.ensureAgentWorkspace('btender', 'standard')
+    expect(sessionId).toBe('s-auto')
+    expect(b.createDirectory).not.toHaveBeenCalled()
+    expect(b.workspaces.create).not.toHaveBeenCalled()
+    expect(b.workspaces.connectWorkspace).toHaveBeenCalledWith('ws-existing', 'standard')
+  })
+
+  it('returns the current session unchanged when it already lives in the Agent workspace', async () => {
+    const { bench: b, injected } = await mount()
+    b.setWorkspaces({ items: [workspaceView('ws-invest', agentPath('invest'), ['s-invest'])] })
+    b.setSessions({ ids: ['s-invest'], byId: { 's-invest': { cwd: agentPath('invest'), blank: true } }, current: 's-invest' })
+    const sessionId = await injected.ensureAgentWorkspace('invest', 'standard')
+    expect(sessionId).toBe('s-invest')
+    expect(b.createDirectory).not.toHaveBeenCalled()
+    expect(b.workspaces.create).not.toHaveBeenCalled()
+    expect(b.workspaces.connectWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('ignores an already-existing directory when creating the Agent workspace', async () => {
+    const { bench: b, injected } = await mount()
+    b.createDirectory.mockResolvedValueOnce({
+      result: { ok: false, error: { code: 'directory-exists', message: 'already there', details: {} } },
+    })
+    const sessionId = await injected.ensureAgentWorkspace('video', 'standard')
+    expect(sessionId).toBe('s-auto')
+    expect(b.workspaces.create).toHaveBeenCalledWith({ path: agentPath('video') })
   })
 
   it('wins the root cell over a default-priority registration (lowest renders)', async () => {

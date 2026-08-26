@@ -74,11 +74,12 @@ function buildWorkspaces(): WorkspaceListState {
 /** Shipped preset roster the frame resolves against (apps/cli/config/agent-presets). */
 const SHIPPED_PRESETS = ['code', 'cordis', 'minimal', 'standard']
 
-function mount(roster: string[] = SHIPPED_PRESETS) {
+function mount(roster: string[] = SHIPPED_PRESETS, ensureResult = 'auto-s1') {
   const state = { sessions: buildSessions(), workspaces: buildWorkspaces() }
   const openSession = vi.fn()
   const startSession = vi.fn()
   const resolveAgentPresets = vi.fn().mockResolvedValue(new Set(roster))
+  const ensureAgentWorkspace = vi.fn().mockResolvedValue(ensureResult)
   const renderedSlots: string[] = []
   const useSessions = ((sel: (s: SessionListState) => unknown) => sel(state.sessions)) as unknown as DashboardFrameComponentProps['useSessions']
   const useWorkspaces = ((sel: (s: WorkspaceListState) => unknown) => sel(state.workspaces)) as unknown as DashboardFrameComponentProps['useWorkspaces']
@@ -95,6 +96,7 @@ function mount(roster: string[] = SHIPPED_PRESETS) {
     openSession,
     startSession,
     resolveAgentPresets,
+    ensureAgentWorkspace,
     SessionProvider,
     t,
     renderSlot,
@@ -105,6 +107,7 @@ function mount(roster: string[] = SHIPPED_PRESETS) {
     openSession,
     startSession,
     resolveAgentPresets,
+    ensureAgentWorkspace,
     renderedSlots,
     /** The shell root element (`data-dsh-shell="dashboard"`), for class-state checks. */
     frame() {
@@ -199,6 +202,34 @@ describe('DashboardFrame product shell', () => {
     expect(screen.queryByText(/is not installed/)).toBeNull()
     fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
+  })
+
+  it('auto-connects the default Agent workspace on mount and opens the session', async () => {
+    const b = mount()
+    await vi.waitFor(() => {
+      expect(b.ensureAgentWorkspace).toHaveBeenCalledWith('coder', 'standard')
+    })
+    // The connected session differs from the current one → opened.
+    await vi.waitFor(() => {
+      expect(b.openSession).toHaveBeenCalledWith('auto-s1')
+    })
+  })
+
+  it('auto-connects the newly selected Agent workspace', async () => {
+    const b = mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
+    await vi.waitFor(() => {
+      expect(b.ensureAgentWorkspace).toHaveBeenCalledWith('invest', 'standard')
+    })
+  })
+
+  it('does not reopen a session already inside the Agent workspace', async () => {
+    // The resolved session equals the current one ('s1') — the frame skips the open.
+    const b = mount(SHIPPED_PRESETS, 's1')
+    await vi.waitFor(() => {
+      expect(b.ensureAgentWorkspace).toHaveBeenCalledWith('coder', 'standard')
+    })
+    expect(b.openSession).not.toHaveBeenCalled()
   })
 
   it('shows ungrouped sessions and the loading line before baselines are ready', () => {

@@ -6,8 +6,8 @@ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-dashboard-shell/client'
 import type { DashboardShellInjected } from '@deepseek-ai/dsh-client-ui-dashboard-shell/client'
 
-/** Installed roster the bench's connection reports. */
-const INSTALLED_PRESETS = ['coder', 'btender', 'invest', 'video']
+/** Installed roster the bench's connection reports (the shipped preset set). */
+const INSTALLED_PRESETS = ['code', 'cordis', 'minimal', 'standard']
 
 async function bench() {
   const ctx = new Context()
@@ -65,8 +65,8 @@ describe('ui-dashboard-shell apply', () => {
     await injected.startSession('w1' as never)
     expect(b.workspaces.startSession).toHaveBeenLastCalledWith('w1', undefined)
     // An installed preset rides the roster check and reaches the workspaces service.
-    await injected.startSession('w1' as never, 'coder')
-    expect(b.workspaces.startSession).toHaveBeenLastCalledWith('w1', 'coder')
+    await injected.startSession('w1' as never, 'standard')
+    expect(b.workspaces.startSession).toHaveBeenLastCalledWith('w1', 'standard')
     await injected.startSession()
     expect(b.workspaces.startSession).toHaveBeenLastCalledWith(undefined, undefined)
   })

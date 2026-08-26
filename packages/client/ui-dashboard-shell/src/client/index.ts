@@ -122,6 +122,8 @@ export function apply(ctx: ClientContext): void {
         'dashboard.main': { kind: 'single', scope: 'root' },
         'conversation': { kind: 'single', scope: 'session-maybe' },
         'details': { kind: 'single', scope: 'session' },
+        'conversation.hero.workspace': { kind: 'single', scope: 'root' },
+        'conversation.hero.agentPreset': { kind: 'single', scope: 'root' },
       },
       locale: NS,
       inject: injectProps,

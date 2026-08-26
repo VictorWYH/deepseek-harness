@@ -21,6 +21,10 @@ import type {} from '@deepseek-ai/dsh-client-runtime/client'
 // ('conversation' / 'details') this shell re-hosts while the native AppFrame
 // is not registered under this composition.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+// Type-only: pulls ui-workspace's SlotMap merge so this shell can declare
+// 'sidebar.workspaces.directoryFlow' (the directory-picker pair's sidebar
+// gate) without rendering a sidebar shell.
+import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { SessionId, WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {

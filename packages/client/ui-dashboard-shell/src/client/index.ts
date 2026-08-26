@@ -122,8 +122,13 @@ export function apply(ctx: ClientContext): void {
         'dashboard.main': { kind: 'single', scope: 'root' },
         'conversation': { kind: 'single', scope: 'session-maybe' },
         'details': { kind: 'single', scope: 'session' },
-        'conversation.hero.workspace': { kind: 'single', scope: 'root' },
-        'conversation.hero.agentPreset': { kind: 'single', scope: 'root' },
+        // The sidebar's directory-flow hole. The Dashboard composition disables
+        // ui-sidebar, so nobody else declares this seat — but the composed
+        // directory-picker pair registers its browse/native flow into BOTH
+        // workspace holes transactionally (the sidebar one gates the hero
+        // picker's "Add workspace" entry). Declaring it here unblocks that
+        // pair; the seat is never rendered (no sidebar shell under this frame).
+        'sidebar.workspaces.directoryFlow': { kind: 'single', scope: 'root' },
       },
       locale: NS,
       inject: injectProps,

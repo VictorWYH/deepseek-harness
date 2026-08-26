@@ -57,6 +57,13 @@ describe('ui-dashboard-shell apply', () => {
     // Re-hosted product seats: the conversation surface and the details panel.
     expect(b.slots.spec('conversation')).toEqual({ kind: 'single', scope: 'session-maybe' })
     expect(b.slots.spec('details')).toEqual({ kind: 'single', scope: 'session' })
+    // The sidebar directory-flow gate: declared so the composed directory-picker
+    // pair (which mounts into both workspace holes transactionally) activates
+    // under a Dashboard composition that disables ui-sidebar. Never rendered.
+    expect(b.slots.spec('sidebar.workspaces.directoryFlow')).toEqual({ kind: 'single', scope: 'root' })
+    // The hero picker seats are declared by ui-conversation, not by this shell
+    // (a duplicate declaration would collide at apply time).
+    expect(b.slots.spec('conversation.hero.workspace')).toBeUndefined()
     const injected = (entries[0]!.inject as () => DashboardShellInjected)()
     expect(Object.keys(injected)).toEqual(['openSession', 'startSession', 'resolveAgentPresets'])
     injected.openSession('s1' as never)

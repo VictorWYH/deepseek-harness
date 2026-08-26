@@ -106,9 +106,13 @@
 
 # ── intentionally left live ──────────────────────────────────────────────────
 # ui-conversation:     the Dashboard main region re-hosts its conversation seat.
-# ui-workspace:        the hero's Workspace picker — without it a fresh home can
-#                      never create a Workspace/Session, so the composer stays
-#                      inert ("cannot type"). Also provides the sidebar browser.
+# ui-workspace:        the hero's Workspace picker AND the directory-flow holes
+#                      it declares. The Dashboard shell declares the sidebar
+#                      directory-flow seat itself (ui-sidebar is disabled), so
+#                      the composed directory-picker pair can mount into both
+#                      holes and the hero picker gains its "Add workspace"
+#                      entry — without it a fresh home can never create a
+#                      Workspace/Session and the composer stays inert.
 # ui-input-trigger:    the slash/at candidate menu and the `inputTriggers`
 #                      service ui-commands and ui-reference depend on.
 # ui-commands:         the slash command surface (`/model`, …) and `commandUi`.

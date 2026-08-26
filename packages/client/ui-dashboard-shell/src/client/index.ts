@@ -115,7 +115,7 @@ export function apply(ctx: ClientContext): void {
       const current = currentId === undefined ? undefined : sessionList.byId[currentId]
       const existing = workspaces.items.find(workspace => workspace.path === target)
       // Already connected: the current session lives in this Agent's Workspace.
-      if (current !== undefined && existing !== undefined
+      if (current !== undefined && currentId !== undefined && existing !== undefined
         && (current.cwd === target || existing.sessionIds.includes(currentId))) {
         return currentId
       }

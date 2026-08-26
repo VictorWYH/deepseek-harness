@@ -302,15 +302,15 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'The workspaces-service face injected as `ctx.workspaces`.',
     methods: [
       {
-        signature: 'connectWorkspace(workspaceId: WorkspaceId): Promise<SessionId>',
+        signature: 'connectWorkspace(workspaceId: WorkspaceId, agentPreset?: string): Promise<SessionId>',
         description: 'Connect a Workspace to its reusable or freshly created blank session.',
-        parameters: [{ name: 'workspaceId', description: 'target workspace.' }],
+        parameters: [{ name: 'workspaceId', description: 'target workspace.' }, { name: 'agentPreset', description: 'optional composition preset for a freshly created session; an existing blank born under a different preset is not reused.' }],
         returns: 'the connected session id.',
       },
       {
-        signature: 'startSession(workspaceId?: WorkspaceId): void',
+        signature: 'startSession(workspaceId?: WorkspaceId, agentPreset?: string): void',
         description: 'The New Session flow: connect the explicit, current-Session, or recent Workspace and open the resulting session; failures surface on the session list state.',
-        parameters: [{ name: 'workspaceId', description: 'explicit target; omitted inherits the current Session\'s Workspace before falling back to the recency projection.' }],
+        parameters: [{ name: 'workspaceId', description: 'explicit target; omitted inherits the current Session\'s Workspace before falling back to the recency projection.' }, { name: 'agentPreset', description: 'optional composition preset for the new session.' }],
       },
       {
         signature: 'create(input: { path: string }): Promise<WorkspaceView>',

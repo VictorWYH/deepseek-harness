@@ -760,6 +760,24 @@ describe('remaining branches', () => {
     expect(await manager.create()).toMatchObject({ ok: false })
   })
 
+  it('create forwards agentPreset to the wire payload and onto the list row', async () => {
+    const api = new FakeApiClient()
+    api.onCreate = () => Promise.resolve(ok({ sessionId: S1, agentPreset: 'coder' }))
+    const manager = new SessionManager(api, fakeRemote())
+    await manager.create({ workspaceId: 'w1' as never, agentPreset: 'coder' })
+    expect(api.callsOf('session.create')).toEqual([{ workspaceId: 'w1', agentPreset: 'coder' }])
+    expect(manager.getListSnapshot().items[0]).toMatchObject({ sessionId: S1, agentPreset: 'coder' })
+    // cwd arm also carries the preset; an omitted preset stays absent from the payload.
+    api.onCreate = () => Promise.resolve(ok({ sessionId: S1, agentPreset: 'video' }))
+    await manager.create({ cwd: '/tmp/v', agentPreset: 'video' })
+    expect(api.callsOf('session.create')).toEqual([
+      { workspaceId: 'w1', agentPreset: 'coder' },
+      { cwd: '/tmp/v', agentPreset: 'video' },
+    ])
+    await manager.create({ cwd: '/tmp/x' })
+    expect(api.callsOf('session.create').at(-1)).toEqual({ cwd: '/tmp/x' })
+  })
+
   it('publishes a real Ungrouped summary from workspace-attach-failed', async () => {
     const api = new FakeApiClient()
     api.onCreate = () => Promise.resolve(err({

@@ -107,16 +107,31 @@ export interface DetailsOwnerProps {}
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
 export const inject = ['slots', 'theme']
 
+/** Optional layout-plugin configuration (the web-app patch row's `config`). */
+export interface UiLayoutConfig {
+  /**
+   * Register the native AppFrame into the built-in 'root' slot (default
+   * `true`). Set `false` when another shell owns 'root' (e.g. the Dashboard
+   * shell at priority -1) and only the `ctx.layout` service is wanted — the
+   * frame's four child slots then remain undeclared, so a coexisting shell
+   * may declare its own 'conversation'/'details' seats without a
+   * double-declaration error.
+   */
+  registerRoot?: boolean
+}
+
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
  * into 'root' with the four child-slot declarations, the layout store seat,
  * and the inject hook that hands the store's bound actions to the service.
  * @param ctx - client root context.
+ * @param config - optional plugin configuration (see {@link UiLayoutConfig}).
  */
-export function apply(ctx: ClientContext): void {
+export function apply(ctx: ClientContext, config: UiLayoutConfig = {}): void {
   const layout = new LayoutController()
   ctx.effect(() => {
     const disposeService = ctx.reflect.provide('layout', layout)
+    if (config.registerRoot === false) return () => { void disposeService() }
     const disposeRegistration = ctx.slots.register({
       name: 'root',
       children: {

@@ -12,7 +12,7 @@
  * region by registering into the hole. Pure component: everything arrives
  * through the composed props shares — zero ctx or framework imports.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import type {
   SessionId, SessionListState, SessionSummary, WorkspaceId, WorkspaceListState,
@@ -22,6 +22,7 @@ import type {
   DashboardSidebarOwnerProps,
 } from './contract/slots.ts'
 import type { DashboardKey } from './locales.ts'
+import { presetForAgent } from './presets.ts'
 import css from './DashboardFrame.module.css'
 
 /** One stat card's display value and label. */
@@ -159,6 +160,7 @@ function AgentDashboard({
   groups,
   openSession,
   startSession,
+  presetNotice,
   t,
 }: {
   selectedAgentId: string
@@ -169,6 +171,7 @@ function AgentDashboard({
   groups: readonly SessionGroup[]
   openSession: (sessionId: SessionId) => void
   startSession: (workspaceId?: WorkspaceId) => void
+  presetNotice: string | undefined
   t: DashboardFrameComponentProps['t']
 }) {
   const cards: StatValue[] = [
@@ -187,6 +190,10 @@ function AgentDashboard({
           {t('session.new')}
         </button>
       </header>
+
+      {presetNotice !== undefined && (
+        <p className={css.presetNotice} role="status">{presetNotice}</p>
+      )}
 
       <section className={css.statsRow} aria-label={t('shell.title')}>
         {cards.map(card => <StatCard key={card.label} {...card} />)}
@@ -253,14 +260,25 @@ export function DashboardFrame({
   useWorkspaces,
   openSession,
   startSession,
+  resolveAgentPresets,
   t,
   renderSlot,
 }: DashboardFrameComponentProps) {
   const defaultAgent = AGENTS[0]
   if (defaultAgent === undefined) throw new Error('dashboard shell: Agent roster is empty')
   const [selectedAgentId, setSelectedAgentId] = useState<string>(defaultAgent.id)
+  /** Installed preset ids from the live roster; null while the lookup is in flight. */
+  const [availablePresets, setAvailablePresets] = useState<ReadonlySet<string> | null>(null)
   const sessions = useSessions(s => s)
   const workspaces = useWorkspaces(s => s)
+
+  useEffect(() => {
+    let live = true
+    void resolveAgentPresets().then((ids) => {
+      if (live) setAvailablePresets(ids)
+    })
+    return () => { live = false }
+  }, [resolveAgentPresets])
 
   const selectedAgent = useMemo(
     () => AGENTS.find(agent => agent.id === selectedAgentId) ?? defaultAgent,
@@ -270,6 +288,22 @@ export function DashboardFrame({
     () => AGENTS.map(agent => ({ id: agent.id, label: t(agent.labelKey) })),
     [t],
   )
+  /** The selected Agent's mapped preset, when the Agent has one and it is
+   *  installed (or the roster is still loading — the injected action guards). */
+  const usablePreset = useMemo(() => {
+    const mapped = presetForAgent(selectedAgent.id)
+    if (mapped === undefined) return undefined
+    return availablePresets === null || availablePresets.has(mapped) ? mapped : undefined
+  }, [availablePresets, selectedAgent])
+  /** Surface a missing-preset notice instead of silently starting on the default. */
+  const presetNotice = useMemo(() => {
+    const mapped = presetForAgent(selectedAgent.id)
+    if (mapped === undefined || availablePresets === null || availablePresets.has(mapped)) return undefined
+    return t('preset.missing', { preset: mapped })
+  }, [availablePresets, selectedAgent, t])
+  const startWithPreset = (workspaceId?: WorkspaceId): void => {
+    void startSession(workspaceId, usablePreset)
+  }
   const stats = useMemo<DashboardStats>(() => ({
     workspaces: workspaces.items.length,
     sessions: sessions.ids.length,
@@ -287,7 +321,7 @@ export function DashboardFrame({
     agents,
     selectedAgentId: selectedAgent.id,
     onSelectAgent: (agentId) => { setSelectedAgentId(agentId) },
-    onNewSession: () => { startSession() },
+    onNewSession: () => { startWithPreset() },
   }
   const mainOwner: DashboardMainOwnerProps = {
     selectedAgentId: selectedAgent.id,
@@ -312,11 +346,18 @@ export function DashboardFrame({
               stats={stats}
               groups={groups}
               openSession={openSession}
-              startSession={startSession}
+              startSession={startWithPreset}
+              presetNotice={presetNotice}
               t={t}
             />
           ),
         })}
+        {/* The re-hosted conversation seat: ui-conversation's ConversationRoot
+            renders the hero when no session is current and the live chat when
+            one is — the Dashboard main region hosts it below the Agent board. */}
+        <section className={css.conversationRegion}>
+          {renderSlot('conversation', {})}
+        </section>
       </main>
     </div>
   )

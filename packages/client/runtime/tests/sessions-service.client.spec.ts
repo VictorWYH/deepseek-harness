@@ -482,6 +482,14 @@ describe('create', () => {
     })
   })
 
+  it('passes agentPreset through to the wire payload and onto the list row', async () => {
+    const b = bench()
+    b.api.onCreate = () => Promise.resolve(ok({ sessionId: sid('born'), agentPreset: 'btender' }))
+    await expect(b.svc.create({ workspaceId: 'ws' as never, agentPreset: 'btender' })).resolves.toBe('born')
+    expect(b.api.callsOf('session.create')).toEqual([{ workspaceId: 'ws', agentPreset: 'btender' }])
+    expect(b.svc.list.getSnapshot().byId[sid('born')]).toMatchObject({ id: 'born', blank: true, agentPreset: 'btender' })
+  })
+
   it('resolves with the session already listed and binding-resolvable (no flush wait)', async () => {
     const b = bench()
     b.api.onCreate = () => Promise.resolve(ok({ sessionId: sid('born') }))

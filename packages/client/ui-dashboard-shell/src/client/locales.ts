@@ -18,6 +18,7 @@ export const zh = {
   'session.running': '运行中',
   'sessions.empty': '暂无会话',
   'group.ungrouped': '未分组',
+  'preset.missing': '未安装 preset「{preset}」，将使用默认配置',
 } satisfies Record<string, string>
 
 /** The dashboard namespace key union. */
@@ -41,4 +42,5 @@ export const en = {
   'session.running': 'Running',
   'sessions.empty': 'No sessions yet',
   'group.ungrouped': 'Ungrouped',
+  'preset.missing': 'Preset "{preset}" is not installed; the default composition will be used',
 } satisfies Record<DashboardKey, string>

@@ -275,6 +275,50 @@ describe('WorkspaceRuntime', () => {
     await expect(workspaces.connectWorkspace(wid('alpha'))).resolves.toBe('s-fresh-2')
   })
 
+  it('threads the requested agentPreset into the create payload and skips mismatched blanks', async () => {
+    const ctx = new Context()
+    const api = new FakeApiClient()
+    const sessions = new SessionRuntime(ctx, api, fakeRemote())
+    const workspaces = new WorkspaceRuntime(ctx, api, sessions)
+    api.onWorkspaceList = () => Promise.resolve(ok({ items: [workspace('alpha', [sid('s-blank'), sid('s-coder')])] as never[] }))
+    api.onList = () => Promise.resolve(ok({
+      items: [
+        // Blank born without the requested composition — never reused for 'coder'.
+        { sessionId: sid('s-blank'), updatedAt: 1, running: false, blank: true, cwd: '/w/alpha' },
+        // Blank already born under the requested preset — the reuse hit.
+        { sessionId: sid('s-coder'), updatedAt: 2, running: false, blank: true, cwd: '/w/alpha', agentPreset: 'coder' },
+      ] as never[],
+    }))
+    await Promise.all([workspaces.refresh(), sessions.refresh()])
+    await Promise.resolve()
+
+    // Requested preset present on a member blank → reuse, no create RPC.
+    await expect(workspaces.connectWorkspace(wid('alpha'), 'coder')).resolves.toBe('s-coder')
+    expect(api.callsOf('session.create')).toEqual([])
+
+    // Blank under a different composition is not reused → the fresh create
+    // carries the requested preset in the wire payload.
+    api.onCreate = () => Promise.resolve(ok({ sessionId: sid('s-fresh') }))
+    await expect(workspaces.connectWorkspace(wid('alpha'), 'btender')).resolves.toBe('s-fresh')
+    expect(api.callsOf('session.create')).toEqual([{ workspaceId: 'alpha', agentPreset: 'btender' }])
+  })
+
+  it('startSession forwards the agentPreset to the workspace connect', async () => {
+    const ctx = new Context()
+    const api = new FakeApiClient()
+    const sessions = new SessionRuntime(ctx, api, fakeRemote())
+    const workspaces = new WorkspaceRuntime(ctx, api, sessions)
+    api.onWorkspaceList = () => Promise.resolve(ok({ items: [workspace('alpha', [])] as never[] }))
+    await workspaces.refresh()
+    await sessions.refresh()
+    await Promise.resolve()
+    api.onCreate = () => Promise.resolve(ok({ sessionId: sid('s-new') }))
+    workspaces.startSession(wid('alpha'), 'invest')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(api.callsOf('session.create')).toEqual([{ workspaceId: 'alpha', agentPreset: 'invest' }])
+    expect(sessions.list.getSnapshot().current).toBe('s-new')
+  })
+
   it('a rejected first prompt keeps the blank session eligible for connectWorkspace reuse', async () => {
     const ctx = new Context()
     const api = new FakeApiClient()
@@ -422,16 +466,16 @@ describe('WorkspaceRuntime', () => {
 
     workspaces.startSession(wid('recent-home'))
     await Promise.resolve()
-    expect(connect).toHaveBeenLastCalledWith(wid('recent-home'))
+    expect(connect).toHaveBeenLastCalledWith(wid('recent-home'), undefined)
 
     workspaces.startSession()
     await Promise.resolve()
-    expect(connect).toHaveBeenLastCalledWith(wid('current-home'))
+    expect(connect).toHaveBeenLastCalledWith(wid('current-home'), undefined)
 
     sessions.clear()
     workspaces.startSession()
     await Promise.resolve()
-    expect(connect).toHaveBeenLastCalledWith(wid('recent-home'))
+    expect(connect).toHaveBeenLastCalledWith(wid('recent-home'), undefined)
 
     const emptyCtx = new Context()
     const emptyApi = new FakeApiClient()

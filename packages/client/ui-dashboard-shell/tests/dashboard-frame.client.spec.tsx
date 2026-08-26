@@ -10,8 +10,12 @@ import { DashboardFrame } from '../src/client/DashboardFrame.tsx'
 import { en } from '../src/client/locales.ts'
 
 // English-dictionary translate stub: the shell renders the same copy the
-// assertions below query by accessible name.
-const t: DashboardFrameComponentProps['t'] = key => (en as Record<string, string>)[key] ?? key
+// assertions below query by accessible name; `{param}` templates interpolate.
+const t: DashboardFrameComponentProps['t'] = (key, params) => {
+  const template = (en as Record<string, string>)[key] ?? key
+  if (params === undefined) return template
+  return template.replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? ''))
+}
 
 afterEach(() => {
   cleanup()
@@ -67,53 +71,48 @@ function buildWorkspaces(): WorkspaceListState {
   }
 }
 
-function mount() {
+function mount(roster: string[] = ['coder', 'btender', 'invest', 'video']) {
   const state = { sessions: buildSessions(), workspaces: buildWorkspaces() }
   const openSession = vi.fn()
   const startSession = vi.fn()
+  const resolveAgentPresets = vi.fn().mockResolvedValue(new Set(roster))
   const renderedSlots: string[] = []
   const useSessions = ((sel: (s: SessionListState) => unknown) => sel(state.sessions)) as unknown as DashboardFrameComponentProps['useSessions']
   const useWorkspaces = ((sel: (s: WorkspaceListState) => unknown) => sel(state.workspaces)) as unknown as DashboardFrameComponentProps['useWorkspaces']
-  const view = render(
-    <DashboardFrame
-      useSessions={useSessions}
-      useWorkspaces={useWorkspaces}
-      openSession={openSession}
-      startSession={startSession}
-      t={t}
-      renderSlot={((key: string, _owner: unknown, opts?: { fallback?: ReactNode }) => {
-        renderedSlots.push(key)
-        return opts?.fallback ?? null
-      }) as unknown as DashboardFrameComponentProps['renderSlot']}
-    />,
-  )
+  const renderSlot = ((key: string, _owner: unknown, opts?: { fallback?: ReactNode }) => {
+    renderedSlots.push(key)
+    return opts?.fallback ?? null
+  }) as unknown as DashboardFrameComponentProps['renderSlot']
+  // 'details' is a declared session-scope seat (ui-conversation's panel); the
+  // standard-kit SessionProvider is injected by the framework, stubbed here.
+  const SessionProvider = (() => null) as unknown as DashboardFrameComponentProps['SessionProvider']
+  const props = {
+    useSessions,
+    useWorkspaces,
+    openSession,
+    startSession,
+    resolveAgentPresets,
+    SessionProvider,
+    t,
+    renderSlot,
+  }
+  const view = render(<DashboardFrame {...props} />)
   return {
     state,
     openSession,
     startSession,
+    resolveAgentPresets,
     renderedSlots,
     rerender() {
-      view.rerender(
-        <DashboardFrame
-          useSessions={useSessions}
-          useWorkspaces={useWorkspaces}
-          openSession={openSession}
-          startSession={startSession}
-          t={t}
-          renderSlot={((key: string, _owner: unknown, opts?: { fallback?: ReactNode }) => {
-            renderedSlots.push(key)
-            return opts?.fallback ?? null
-          }) as unknown as DashboardFrameComponentProps['renderSlot']}
-        />,
-      )
+      view.rerender(<DashboardFrame {...props} />)
     },
   }
 }
 
 describe('DashboardFrame product shell', () => {
-  it('renders the Agent nav and the selected Agent dashboard', () => {
+  it('renders the Agent nav and the selected Agent dashboard, and hosts the conversation seat', () => {
     const b = mount()
-    expect(b.renderedSlots).toEqual(['dashboard.sidebar', 'dashboard.main'])
+    expect(b.renderedSlots).toEqual(['dashboard.sidebar', 'dashboard.main', 'conversation'])
     expect(screen.getByRole('navigation', { name: 'Agents' })).toBeTruthy()
     for (const name of ['Coder Agent', 'Bid Agent', 'Invest Agent', 'Video Agent']) {
       expect(screen.getByRole('button', { name })).toBeTruthy()
@@ -153,20 +152,37 @@ describe('DashboardFrame product shell', () => {
     expect(b.openSession).toHaveBeenLastCalledWith('s3')
   })
 
-  it('starts a New Session globally and per Workspace', () => {
+  it('starts a New Session with the selected Agent preset globally and per Workspace', () => {
     const b = mount()
     // Nav foot + dashboard header + one per workspace group.
     expect(screen.getAllByRole('button', { name: 'New session' })).toHaveLength(4)
     fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]!)
-    expect(b.startSession).toHaveBeenLastCalledWith()
+    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'coder')
     fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
-    expect(b.startSession).toHaveBeenLastCalledWith()
+    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'coder')
     const groupW1 = screen.getByText('ws-w1').closest('section')!
     fireEvent.click(within(groupW1).getByRole('button', { name: 'New session' }))
-    expect(b.startSession).toHaveBeenLastCalledWith('w1')
+    expect(b.startSession).toHaveBeenLastCalledWith('w1', 'coder')
     const groupW2 = screen.getByText('ws-w2').closest('section')!
     fireEvent.click(within(groupW2).getByRole('button', { name: 'New session' }))
-    expect(b.startSession).toHaveBeenLastCalledWith('w2')
+    expect(b.startSession).toHaveBeenLastCalledWith('w2', 'coder')
+    // After switching Agent the mapped preset follows the selection.
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
+    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'invest')
+  })
+
+  it('loads the preset roster once and notices an Agent whose preset is not installed', async () => {
+    // 'video' is missing from the installed roster.
+    const b = mount(['coder', 'btender', 'invest'])
+    expect(b.resolveAgentPresets).toHaveBeenCalledTimes(1)
+    // The selected coder Agent's preset is installed → no notice.
+    expect(screen.queryByText(/Preset "coder" is not installed/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Video Agent' }))
+    expect(await screen.findByText('Preset "video" is not installed; the default composition will be used')).toBeTruthy()
+    // The missing preset is not passed to the workspaces action either.
+    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
+    expect(b.startSession).toHaveBeenLastCalledWith(undefined, undefined)
   })
 
   it('shows ungrouped sessions and the loading line before baselines are ready', () => {

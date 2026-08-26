@@ -17,17 +17,20 @@ export interface IWorkspaces {
   /**
    * Connect a Workspace to its reusable or freshly created blank session.
    * @param workspaceId - target workspace.
+   * @param agentPreset - optional composition preset for a freshly created
+   *   session; an existing blank born under a different preset is not reused.
    * @returns the connected session id.
    */
-  connectWorkspace(workspaceId: WorkspaceId): Promise<SessionId>
+  connectWorkspace(workspaceId: WorkspaceId, agentPreset?: string): Promise<SessionId>
   /**
    * The New Session flow: connect the explicit, current-Session, or recent
    * Workspace and open the resulting session; failures surface on the session
    * list state.
    * @param workspaceId - explicit target; omitted inherits the current
    * Session's Workspace before falling back to the recency projection.
+   * @param agentPreset - optional composition preset for the new session.
    */
-  startSession(workspaceId?: WorkspaceId): void
+  startSession(workspaceId?: WorkspaceId, agentPreset?: string): void
   /**
    * Register an existing path as a Workspace.
    * @param input - the Host create payload.

@@ -1,0 +1,32 @@
+/* GeoBoard — real GEO/SEO board migrated from the 6995 dashboard. */
+
+.board { display: flex; flex-direction: column; gap: 16px; padding: 20px 24px; }
+.pageHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pageTitle { margin: 0; font-size: 20px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.pageDesc { margin: 4px 0 0; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+.rangeRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.refreshBtn { padding: 5px 10px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 7px; background: transparent; color: var(--dsw-alias-label-primary); font-size: 12px; cursor: pointer; }
+.refreshBtn:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.errorState { padding: 12px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; font-size: 12px; }
+
+.card { border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-3); padding: 14px 16px; }
+.cardHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.cardTitle { font-size: 14px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.cardSub { font-size: 11px; color: var(--dsw-alias-label-tertiary); }
+.muted { color: var(--dsw-alias-label-tertiary); font-size: 11px; }
+
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.table th { text-align: left; padding: 8px; color: var(--dsw-alias-label-secondary); border-bottom: 1px solid var(--dsw-alias-border-l1); }
+.table td { padding: 8px; color: var(--dsw-alias-label-primary); border-bottom: 1px solid var(--dsw-alias-border-l1); }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+.badgeOk { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.badgeInfo { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+.badgeWarn { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+
+.chartSvg { width: 100%; height: 120px; }
+.progressBar { width: 100%; min-width: 80px; height: 6px; border-radius: 999px; background: var(--dsw-alias-bg-layer-2); overflow: hidden; }
+.progressFill { display: block; height: 100%; background: #38bdf8; }
+
+@media (max-width: 900px) { .pageHead { flex-direction: column; } }

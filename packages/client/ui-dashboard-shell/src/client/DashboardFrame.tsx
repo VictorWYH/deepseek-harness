@@ -21,6 +21,9 @@ import { CoderBoard } from './CoderBoard.tsx'
 import { InvestBoard } from './InvestBoard.tsx'
 import { VideoBoard } from './VideoBoard.tsx'
 import { BtenderBoard } from './BtenderBoard.tsx'
+import { HealthBoard } from './HealthBoard.tsx'
+import { GeoBoard } from './GeoBoard.tsx'
+import { BriefBoard } from './BriefBoard.tsx'
 import css from './DashboardFrame.module.css'
 
 /** One stat card's display value and label. */
@@ -55,7 +58,14 @@ const AGENTS: readonly AgentDef[] = [
   { id: 'btender', labelKey: 'agent.btender' },
   { id: 'invest', labelKey: 'agent.invest' },
   { id: 'video', labelKey: 'agent.video' },
+  { id: 'health', labelKey: 'agent.health' },
+  { id: 'geo', labelKey: 'agent.geo' },
+  { id: 'brief', labelKey: 'agent.brief' },
 ]
+
+/** Tool boards render a real 6995-style board but are not Agents: they have no
+ *  workspace/preset semantics, so we skip auto-connecting a workspace for them. */
+const TOOL_BOARDS = new Set(['health', 'geo', 'brief'])
 
 export function groupSessions(
   sessions: SessionListState,
@@ -285,29 +295,30 @@ export function DashboardFrame({
     return resolveAgentPreset(selectedAgent.id, availablePresets)
   }, [availablePresets, selectedAgent])
 
+  const isTool = TOOL_BOARDS.has(selectedAgent.id)
   const presetNotice = useMemo(() => {
-    if (availablePresets === null) return undefined
+    if (availablePresets === null || isTool) return undefined
     const resolved = resolveAgentPreset(selectedAgent.id, availablePresets)
     if (resolved !== undefined) return undefined
     const mapped = presetForAgent(selectedAgent.id)
     return t('preset.missing', { preset: mapped ?? 'standard' })
-  }, [availablePresets, selectedAgent, t])
+  }, [availablePresets, selectedAgent, t, isTool])
 
   const workspaceNotice = useMemo(() => {
-    if (!workspaces.baselinesReady) return undefined
+    if (isTool || !workspaces.baselinesReady) return undefined
     const hasDefault = workspaces.items.some(workspace => workspace.path.endsWith(`dashboard/${selectedAgent.id}`))
     return hasDefault ? undefined : t('workspace.none')
-  }, [workspaces.baselinesReady, workspaces.items, selectedAgent.id, t])
+  }, [workspaces.baselinesReady, workspaces.items, selectedAgent.id, t, isTool])
 
   useEffect(() => {
-    if (!workspaces.baselinesReady) return
+    if (!workspaces.baselinesReady || isTool) return
     let cancelled = false
     void ensureAgentWorkspace(selectedAgent.id, usablePreset).then(
       (sessionId) => { if (!cancelled && sessions.current !== sessionId) openSession(sessionId) },
       (reason: unknown) => { if (!cancelled) console.warn('dashboard: auto-connect failed:', reason) },
     )
     return () => { cancelled = true }
-  }, [ensureAgentWorkspace, openSession, selectedAgent.id, usablePreset, workspaces.baselinesReady])
+  }, [ensureAgentWorkspace, openSession, selectedAgent.id, usablePreset, workspaces.baselinesReady, isTool])
 
   const startWithPreset = (workspaceId?: WorkspaceId): void => {
     void startSession(workspaceId, usablePreset)
@@ -364,21 +375,27 @@ export function DashboardFrame({
                 ? <VideoBoard />
                 : selectedAgent.id === 'btender'
                   ? <BtenderBoard />
-                  : (
-                    <AgentBoard
-                      selectedAgentLabel={mainOwner.selectedAgentLabel}
-                      selectedAgentId={mainOwner.selectedAgentId}
-                      stats={stats}
-                      groups={groups}
-                      baselinesReady={workspaces.baselinesReady}
-                      currentSessionId={sessions.current}
-                      presetNotice={presetNotice}
-                      workspaceNotice={workspaceNotice}
-                      openSession={openSession}
-                      startSession={startWithPreset}
-                      t={t}
-                    />
-                  ),
+                  : selectedAgent.id === 'health'
+                    ? <HealthBoard />
+                    : selectedAgent.id === 'geo'
+                      ? <GeoBoard />
+                      : selectedAgent.id === 'brief'
+                        ? <BriefBoard />
+                        : (
+                          <AgentBoard
+                            selectedAgentLabel={mainOwner.selectedAgentLabel}
+                            selectedAgentId={mainOwner.selectedAgentId}
+                            stats={stats}
+                            groups={groups}
+                            baselinesReady={workspaces.baselinesReady}
+                            currentSessionId={sessions.current}
+                            presetNotice={presetNotice}
+                            workspaceNotice={workspaceNotice}
+                            openSession={openSession}
+                            startSession={startWithPreset}
+                            t={t}
+                          />
+                        ),
         })}
       </main>
 

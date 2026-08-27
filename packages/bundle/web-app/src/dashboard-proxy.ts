@@ -38,6 +38,9 @@ const UPSTREAM_BASE = process.env.DASHBOARD_6995_URL ?? 'https://127.0.0.1:6995'
 /** The browser-side prefix under which 6995 APIs appear same-origin. */
 export const PROXY_PREFIX = '/dashboard/api'
 
+/** Browser-side prefix for 6995 static data files (e.g. brief.json). */
+export const DATA_PREFIX = '/dashboard/data'
+
 /**
  * Register the same-origin reverse proxy. Strips `/dashboard` from the path so
  * `/dashboard/api/tasks` reaches the upstream `/api/tasks`; the upstream writes
@@ -85,7 +88,52 @@ export function apply(ctx: Context): void {
       }
     },
   })
-  ctx.effect(() => () => { dispose() }, 'dashboard-proxy: route')
+  // Static data files (brief.json etc.) live under /assets/data on 6995.
+  const disposeData = ctx.webServer.register({
+    kind: 'prefix',
+    path: DATA_PREFIX,
+    handler(req: IncomingMessage, res: ServerResponse): void {
+      const target = upstreamDataUrl(req.url ?? '/')
+      if (target === null) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' })
+        res.end(JSON.stringify({ error: 'dashboard proxy: cannot map data path' }))
+        return
+      }
+      const transport = target.protocol === 'https:' ? https : http
+      const proxyReq = transport.request(target, {
+        method: req.method ?? 'GET',
+        headers: relayHeaders(req),
+        rejectUnauthorized: false,
+      }, (upstream) => {
+        const outHeaders: Record<string, string | string[] | number | undefined> = {}
+        for (const [key, value] of Object.entries(upstream.headers)) outHeaders[key] = value
+        res.writeHead(upstream.statusCode ?? 502, outHeaders)
+        upstream.pipe(res)
+      })
+      proxyReq.on('error', () => {
+        if (res.headersSent) { res.destroy(); return }
+        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' })
+        res.end(JSON.stringify({ ok: false, error: 'dashboard proxy: data upstream unreachable' }))
+      })
+      if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') req.pipe(proxyReq)
+      else proxyReq.end()
+    },
+  })
+  ctx.effect(() => () => { dispose(); disposeData() }, 'dashboard-proxy: route')
+}
+
+/** Map /dashboard/data/x → upstream /assets/data/x. */
+function upstreamDataUrl(rawUrl: string): URL | null {
+  let parsed: URL
+  try { parsed = new URL(rawUrl, PROXY_BASE) } catch { return null }
+  const pathname = parsed.pathname
+  if (!pathname.startsWith(DATA_PREFIX + '/')) return null
+  const upstreamPath = '/assets' + pathname.slice('/dashboard'.length) // → /assets/data/x
+  try {
+    const upstream = new URL(upstreamPath, UPSTREAM_BASE)
+    upstream.search = parsed.search
+    return upstream
+  } catch { return null }
 }
 
 /** Build the upstream absolute URL: strip `/dashboard`, keep query, host loopback. */

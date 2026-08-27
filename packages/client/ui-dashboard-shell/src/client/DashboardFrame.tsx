@@ -18,6 +18,8 @@ import type {
 import type { DashboardKey } from './locales.ts'
 import { presetForAgent, resolveAgentPreset } from './presets.ts'
 import { CoderBoard } from './CoderBoard.tsx'
+import { InvestBoard } from './InvestBoard.tsx'
+import { VideoBoard } from './VideoBoard.tsx'
 import css from './DashboardFrame.module.css'
 
 /** One stat card's display value and label. */
@@ -353,21 +355,25 @@ export function DashboardFrame({
         {renderSlot('dashboard.main', mainOwner, {
           fallback: selectedAgent.id === 'coder'
             ? <CoderBoard />
-            : (
-              <AgentBoard
-                selectedAgentLabel={mainOwner.selectedAgentLabel}
-                selectedAgentId={mainOwner.selectedAgentId}
-                stats={stats}
-                groups={groups}
-                baselinesReady={workspaces.baselinesReady}
-                currentSessionId={sessions.current}
-                presetNotice={presetNotice}
-                workspaceNotice={workspaceNotice}
-                openSession={openSession}
-                startSession={startWithPreset}
-                t={t}
-              />
-            ),
+            : selectedAgent.id === 'invest'
+              ? <InvestBoard />
+              : selectedAgent.id === 'video'
+                ? <VideoBoard />
+                : (
+                  <AgentBoard
+                    selectedAgentLabel={mainOwner.selectedAgentLabel}
+                    selectedAgentId={mainOwner.selectedAgentId}
+                    stats={stats}
+                    groups={groups}
+                    baselinesReady={workspaces.baselinesReady}
+                    currentSessionId={sessions.current}
+                    presetNotice={presetNotice}
+                    workspaceNotice={workspaceNotice}
+                    openSession={openSession}
+                    startSession={startWithPreset}
+                    t={t}
+                  />
+                ),
         })}
       </main>
 

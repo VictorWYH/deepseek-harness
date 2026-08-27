@@ -1,0 +1,164 @@
+/* InvestBoard — real invest board migrated from the 6995 dashboard.
+   Semantic --dsw-alias-* tokens only (docs/web-styling.md). */
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.pageHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pageTitle { margin: 0; font-size: 20px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.pageDesc { margin: 4px 0 0; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+.rangeRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.refresh { font-size: 12px; color: var(--dsw-alias-label-tertiary); font-family: ui-monospace, monospace; }
+
+.btn {
+  padding: 5px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.refreshBtn { composes: btn; }
+.ghostBtn { composes: btn; }
+
+/* login */
+.loginCard {
+  max-width: 380px;
+  margin: 40px auto;
+  padding: 24px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-3);
+}
+.loginTitle { margin: 0 0 16px; font-size: 16px; color: var(--dsw-alias-label-primary); }
+.loginForm { display: flex; flex-direction: column; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.fieldLabel { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.input {
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+}
+.error { margin: 0; color: #ef4444; font-size: 12px; }
+.primaryBtn {
+  padding: 9px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-inverted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.primaryBtn:disabled { opacity: 0.6; cursor: default; }
+
+/* KPI */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-3);
+}
+.kpiLabel { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.kpiValue { font-size: 20px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.kpiDelta { font-size: 11px; color: var(--dsw-alias-label-tertiary); }
+
+.up { color: #ef4444; }
+.down { color: #22c55e; }
+
+/* cards */
+.card {
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-3);
+  padding: 14px 16px;
+}
+.cardHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.cardTitle { font-size: 14px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.cardSub { font-size: 11px; color: var(--dsw-alias-label-tertiary); }
+
+/* ticker */
+.tickerStrip { display: flex; gap: 12px; overflow-x: auto; margin-top: 10px; }
+.ticker { display: flex; flex-direction: column; gap: 2px; min-width: 90px; }
+.tickerName { font-size: 11px; color: var(--dsw-alias-label-secondary); }
+.tickerValue { font-size: 15px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.tickerChange { font-size: 11px; }
+
+/* grid */
+.mainGrid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 14px; }
+
+/* seg */
+.seg { display: flex; gap: 4px; }
+.segBtn {
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.segBtn:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.segActive { border-color: var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); }
+
+/* chart */
+.chart { margin-top: 10px; min-height: 200px; }
+.chartSvg { width: 100%; height: 200px; }
+
+/* table */
+.tableWrap { overflow-x: auto; margin-top: 10px; }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.table th { text-align: left; padding: 8px; color: var(--dsw-alias-label-secondary); border-bottom: 1px solid var(--dsw-alias-border-l1); }
+.table td { padding: 8px; color: var(--dsw-alias-label-primary); border-bottom: 1px solid var(--dsw-alias-border-l1); }
+.num { text-align: right; font-family: ui-monospace, monospace; }
+.holdingName { font-weight: 500; }
+.holdingCode { font-size: 10px; color: var(--dsw-alias-label-tertiary); }
+.mutedText { color: var(--dsw-alias-label-tertiary); }
+.faint { font-size: 10px; opacity: 0.6; }
+
+/* allocation */
+.alloc { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; }
+.allocLegend { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 8px; }
+.allocRow { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; }
+.allocName { flex: 1; color: var(--dsw-alias-label-primary); }
+.allocPct { color: var(--dsw-alias-label-secondary); }
+.allocAmt { font-family: ui-monospace, monospace; color: var(--dsw-alias-label-tertiary); }
+
+/* kv */
+.kvList { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.kv { display: flex; justify-content: space-between; font-size: 12px; }
+.kvK { color: var(--dsw-alias-label-secondary); }
+.kvV { font-family: ui-monospace, monospace; color: var(--dsw-alias-label-primary); }
+
+/* factor */
+.factorList { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.factorRow { display: flex; justify-content: space-between; font-size: 12px; }
+.factorName { color: var(--dsw-alias-label-primary); }
+.factorValue { font-family: ui-monospace, monospace; color: var(--dsw-alias-label-secondary); }
+
+@media (max-width: 900px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mainGrid { grid-template-columns: minmax(0, 1fr); }
+}

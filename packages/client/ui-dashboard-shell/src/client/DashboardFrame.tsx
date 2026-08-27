@@ -190,6 +190,7 @@ function AgentDashboard({
     { label: t('stat.sessions'), value: stats.sessions },
     { label: t('stat.running'), value: stats.running },
   ]
+  const [sessionsOpen, setSessionsOpen] = useState(false)
   return (
     <div className={css.dashboard}>
       <header className={css.dashboardHeader}>
@@ -216,50 +217,62 @@ function AgentDashboard({
 
       {!baselinesReady && <p className={css.loading}>{t('shell.loading')}</p>}
 
-      <section className={css.sessionGroups}>
-        {groups.length === 0
-          ? <p className={css.empty}>{t('sessions.empty')}</p>
-          : groups.map(group => (
-            <section key={group.key} className={css.sessionGroup}>
-              <header className={css.groupHeader}>
-                <span className={css.groupTitle}>{group.title}</span>
-                {group.workspaceId !== undefined && (
-                  <button
-                    type="button"
-                    className={css.groupNew}
-                    onClick={() => { startSession(group.workspaceId) }}
-                  >
-                    {t('session.new')}
-                  </button>
-                )}
-              </header>
-              <ul className={css.sessionList}>
-                {group.sessions.map(session => (
-                  <li key={session.id}>
+      <button
+        type="button"
+        className={css.sessionsToggle}
+        aria-expanded={sessionsOpen}
+        onClick={() => { setSessionsOpen(open => !open) }}
+      >
+        <span>{t('sessions.list')}</span>
+        <span aria-hidden="true">{sessionsOpen ? '▾' : '▸'}</span>
+      </button>
+
+      {sessionsOpen && (
+        <section className={css.sessionGroups}>
+          {groups.length === 0
+            ? <p className={css.empty}>{t('sessions.empty')}</p>
+            : groups.map(group => (
+              <section key={group.key} className={css.sessionGroup}>
+                <header className={css.groupHeader}>
+                  <span className={css.groupTitle}>{group.title}</span>
+                  {group.workspaceId !== undefined && (
                     <button
                       type="button"
-                      className={session.id === sessions.current
-                        ? clsx(css.sessionRow, css.sessionRowCurrent)
-                        : css.sessionRow}
-                      aria-label={`${t('session.open')}: ${session.displayTitle}`}
-                      onClick={() => { openSession(session.id) }}
+                      className={css.groupNew}
+                      onClick={() => { startSession(group.workspaceId) }}
                     >
-                      <span
-                        className={session.running ? clsx(css.statusDot, css.statusRunning) : css.statusDot}
-                        aria-hidden="true"
-                      />
-                      <span className={css.sessionTitle}>{session.displayTitle}</span>
-                      <span className={css.sessionMeta}>{session.cwd ?? session.id}</span>
-                      {session.id === sessions.current && (
-                        <span className={css.currentBadge}>{t('session.current')}</span>
-                      )}
+                      {t('session.new')}
                     </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-      </section>
+                  )}
+                </header>
+                <ul className={css.sessionList}>
+                  {group.sessions.map(session => (
+                    <li key={session.id}>
+                      <button
+                        type="button"
+                        className={session.id === sessions.current
+                          ? clsx(css.sessionRow, css.sessionRowCurrent)
+                          : css.sessionRow}
+                        aria-label={`${t('session.open')}: ${session.displayTitle}`}
+                        onClick={() => { openSession(session.id) }}
+                      >
+                        <span
+                          className={session.running ? clsx(css.statusDot, css.statusRunning) : css.statusDot}
+                          aria-hidden="true"
+                        />
+                        <span className={css.sessionTitle}>{session.displayTitle}</span>
+                        <span className={css.sessionMeta}>{session.cwd ?? session.id}</span>
+                        {session.id === sessions.current && (
+                          <span className={css.currentBadge}>{t('session.current')}</span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+        </section>
+      )}
     </div>
   )
 }

@@ -257,6 +257,27 @@
   gap: 20px;
 }
 
+.sessionsToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sessionsToggle:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
 .sessionGroup {
   display: flex;
   flex-direction: column;

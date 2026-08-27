@@ -146,12 +146,16 @@ describe('DashboardFrame product shell', () => {
   it('shows read-only stat cards over the runtime snapshots', () => {
     mount()
     expect(screen.getByText('Workspaces').closest('div')!.textContent).toContain('2')
-    expect(screen.getByText('Sessions').closest('div')!.textContent).toContain('3')
+    // 展开按钮与统计卡都含有 Sessions 文本，用统计卡的父容器精确断言。
+    const statValue = screen.getAllByText('Sessions')[1]!.closest('div')!.textContent!
+    expect(statValue).toContain('3')
     expect(screen.getByText('Running').closest('div')!.textContent).toContain('1')
   })
 
   it('groups sessions by Workspace and opens a session on click', () => {
     const b = mount()
+    // 会话列表默认折叠：先展开再断言。
+    fireEvent.click(screen.getByRole('button', { name: /Sessions/ }))
     // Two workspace groups in host order; no ungrouped bucket.
     expect(screen.getByText('ws-w1')).toBeTruthy()
     expect(screen.getByText('ws-w2')).toBeTruthy()
@@ -166,11 +170,13 @@ describe('DashboardFrame product shell', () => {
 
   it('starts a New Session with the resolved preset globally and per Workspace', () => {
     const b = mount()
-    // Nav foot + dashboard header + one per workspace group.
-    expect(screen.getAllByRole('button', { name: 'New session' })).toHaveLength(4)
-    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[0]!)
+    // Nav foot + dashboard header（会话组内的按钮在展开后才渲染）。
+    fireEvent.click(screen.getByRole('button', { name: /Sessions/ }))
+    const newSessionButtons = screen.getAllByRole('button', { name: 'New session' })
+    expect(newSessionButtons).toHaveLength(4)
+    fireEvent.click(newSessionButtons[0]!)
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
-    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
+    fireEvent.click(newSessionButtons[1]!)
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
     const groupW1 = screen.getByText('ws-w1').closest('section')!
     fireEvent.click(within(groupW1).getByRole('button', { name: 'New session' }))
@@ -247,6 +253,7 @@ describe('DashboardFrame product shell', () => {
     // Drop the workspace accounting so every session lands in the bucket.
     b.state.workspaces = { ...b.state.workspaces, items: [] }
     b.rerender()
+    fireEvent.click(screen.getByRole('button', { name: /Sessions/ }))
     expect(screen.getByText('Ungrouped')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Open session: title-s1' })).toBeTruthy()
     // Baselines pending: the dashboard keeps its shell and reports loading.

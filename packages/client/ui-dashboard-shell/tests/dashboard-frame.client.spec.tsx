@@ -130,8 +130,10 @@ describe('DashboardFrame product shell', () => {
       expect(screen.getByRole('button', { name })).toBeTruthy()
     }
     expect(screen.getByRole('button', { name: 'Coder Agent' }).getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByRole('heading', { name: 'Coder Agent' })).toBeTruthy()
-    expect(screen.getByText('coder')).toBeTruthy()
+    // 切换到 invest 验证 AgentBoard 渲染（coder 默认显示 CoderBoard）
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
+    expect(screen.getByRole('heading', { name: 'Invest Agent' })).toBeTruthy()
+    expect(screen.getByText('invest')).toBeTruthy()
   })
 
   it('switches the dashboard when another Agent is selected', () => {
@@ -145,6 +147,7 @@ describe('DashboardFrame product shell', () => {
 
   it('shows read-only stat cards over the runtime snapshots', () => {
     mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     expect(screen.getByText('Workspaces').closest('div')!.textContent).toContain('2')
     // 展开按钮与统计卡都含有 Sessions 文本，用统计卡的父容器精确断言。
     const statValue = screen.getAllByText('Sessions')[1]!.closest('div')!.textContent!
@@ -154,6 +157,7 @@ describe('DashboardFrame product shell', () => {
 
   it('groups sessions by Workspace and opens a session on click', () => {
     const b = mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     // 会话列表默认折叠：先展开再断言。
     fireEvent.click(screen.getByRole('button', { name: /Sessions/ }))
     // Two workspace groups in host order; no ungrouped bucket.
@@ -170,6 +174,7 @@ describe('DashboardFrame product shell', () => {
 
   it('starts a New Session with the resolved preset globally and per Workspace', () => {
     const b = mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     const nav = screen.getByRole('navigation', { name: 'Agents' })
     // 展开会话列表后：导航 1 个 + 每个工作区组 1 个（看板头不再重复放）。
     fireEvent.click(screen.getByRole('button', { name: /Sessions/ }))
@@ -192,6 +197,7 @@ describe('DashboardFrame product shell', () => {
     // The shipped roster lacks the Agent-mapped default (`standard`) — but
     // only `minimal` is installed, so no usable preset resolves.
     const b = mount(['minimal'])
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     expect(b.resolveAgentPresets).toHaveBeenCalledTimes(1)
     // The selected coder Agent's mapped preset is not installed → notice.
     expect(await screen.findByText('Preset "standard" is not installed; the default composition will be used')).toBeTruthy()
@@ -203,9 +209,10 @@ describe('DashboardFrame product shell', () => {
 
   it('shows no preset notice when the deployment default is installed', async () => {
     const b = mount(['standard'])
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     // Roster settles without any missing-preset notice: the mapped preset
     // (the deployment default) IS installed for every Agent.
-    await screen.findByRole('heading', { name: 'Coder Agent' })
+    await screen.findByRole('heading', { name: 'Invest Agent' })
     expect(screen.queryByText(/is not installed/)).toBeNull()
     const nav = screen.getByRole('navigation', { name: 'Agents' })
     fireEvent.click(within(nav).getByRole('button', { name: 'New session' }))
@@ -243,6 +250,7 @@ describe('DashboardFrame product shell', () => {
 
   it('shows an explicit init state when the Agent has no default workspace', async () => {
     mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     await vi.waitFor(() => {
       expect(screen.getByText(/no default workspace yet/i)).toBeTruthy()
     })
@@ -250,6 +258,7 @@ describe('DashboardFrame product shell', () => {
 
   it('shows ungrouped sessions and the loading line before baselines are ready', () => {
     const b = mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
     // Drop the workspace accounting so every session lands in the bucket.
     b.state.workspaces = { ...b.state.workspaces, items: [] }
     b.rerender()

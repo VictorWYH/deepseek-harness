@@ -17,6 +17,7 @@ import type {
 } from './contract/slots.ts'
 import type { DashboardKey } from './locales.ts'
 import { presetForAgent, resolveAgentPreset } from './presets.ts'
+import { CoderBoard } from './CoderBoard.tsx'
 import css from './DashboardFrame.module.css'
 
 /** One stat card's display value and label. */
@@ -350,21 +351,23 @@ export function DashboardFrame({
       {/* Center column: 6995-style board */}
       <main className={css.centerPanel}>
         {renderSlot('dashboard.main', mainOwner, {
-          fallback: (
-            <AgentBoard
-              selectedAgentLabel={mainOwner.selectedAgentLabel}
-              selectedAgentId={mainOwner.selectedAgentId}
-              stats={stats}
-              groups={groups}
-              baselinesReady={workspaces.baselinesReady}
-              currentSessionId={sessions.current}
-              presetNotice={presetNotice}
-              workspaceNotice={workspaceNotice}
-              openSession={openSession}
-              startSession={startWithPreset}
-              t={t}
-            />
-          ),
+          fallback: selectedAgent.id === 'coder'
+            ? <CoderBoard />
+            : (
+              <AgentBoard
+                selectedAgentLabel={mainOwner.selectedAgentLabel}
+                selectedAgentId={mainOwner.selectedAgentId}
+                stats={stats}
+                groups={groups}
+                baselinesReady={workspaces.baselinesReady}
+                currentSessionId={sessions.current}
+                presetNotice={presetNotice}
+                workspaceNotice={workspaceNotice}
+                openSession={openSession}
+                startSession={startWithPreset}
+                t={t}
+              />
+            ),
         })}
       </main>
 

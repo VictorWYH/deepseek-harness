@@ -93,8 +93,17 @@ export function HealthBoard() {
   const [formDate, setFormDate] = useState('')
   const [formNote, setFormNote] = useState('')
   const [writing, setWriting] = useState(false)
+  const [apiReachable, setApiReachable] = useState<boolean | null>(null)
+  const [writeError, setWriteError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
+    // Probe the real API. Only when it responds do we treat its data as live;
+    // otherwise we keep the offline seed clearly labelled as non-real-time.
+    let reachable = false
+    try {
+      const probe = await fetch(HEALTH_API + '/api/v1/health/members', { cache: 'no-store' })
+      reachable = probe.ok
+    } catch { reachable = false }
     const [mems, mets, follows, ev] = await Promise.all([
       fetchJson('/api/v1/health/members', SEED_MEMBERS),
       fetchJson('/api/v1/health/metrics', SEED_METRICS),
@@ -105,6 +114,7 @@ export function HealthBoard() {
     setMetrics((mets as Metric[]) ?? [])
     setFollowups((follows as Followup[]) ?? [])
     setEvidence((ev as Evidence[]) ?? [])
+    setApiReachable(reachable)
   }, [])
 
   useEffect(() => { void load() }, [load])
@@ -112,16 +122,23 @@ export function HealthBoard() {
   const addMetric = async () => {
     if (!formValue && formValue !== '0') return
     setWriting(true)
+    setWriteError(null)
     try {
-      await fetch(HEALTH_API + '/api/v1/health/metrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member_id: Number(formMember), metric_type: formType, value: Number(formValue), unit: formUnit, measured_at: formDate || new Date().toISOString().slice(0, 10), note: formNote }) })
+      const resp = await fetch(HEALTH_API + '/api/v1/health/metrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member_id: Number(formMember), metric_type: formType, value: Number(formValue), unit: formUnit, measured_at: formDate || new Date().toISOString().slice(0, 10), note: formNote }) })
+      if (!resp.ok) { setWriteError(`保存失败：HTTP ${resp.status}`); return }
       setFormValue(''); setFormNote('')
       void load()
-    } catch { /* 6996 offline */ }
-    setWriting(false)
+    } catch { setWriteError('保存失败：健康服务(6996)不可用') }
+    finally { setWriting(false) }
   }
 
   const completeFollowup = async (id: number) => {
-    try { await fetch(HEALTH_API + '/api/v1/health/followups/' + id, { method: 'POST', headers: { 'Content-Type': 'application/json' } }); void load() } catch { /* 6996 offline */ }
+    setWriteError(null)
+    try {
+      const resp = await fetch(HEALTH_API + '/api/v1/health/followups/' + id, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      if (!resp.ok) { setWriteError(`操作失败：HTTP ${resp.status}`); return }
+      void load()
+    } catch { setWriteError('操作失败：健康服务(6996)不可用') }
   }
 
   const filteredMetrics = filter ? metrics.filter(m => String(m.member_id) === filter) : metrics
@@ -131,6 +148,8 @@ export function HealthBoard() {
   return (
     <div className={css.board}>
       <div className={css.pageHead}><div><h1 className={css.pageTitle}>家庭健康看板</h1><p className={css.pageDesc}>整理与提醒 · 不替代医生诊断</p></div><div className={css.rangeRow}><button type="button" className={css.refreshBtn} onClick={load}>刷新</button></div></div>
+      {apiReachable === false && <div className={css.unavailable} role="alert">⚠️ 健康服务（127.0.0.1:6996）不可用，当前展示的是离线档案副本，非实时数据；服务恢复后自动切换真实数据。</div>}
+      {writeError && <div className={css.unavailable} role="alert">{writeError}</div>}
 
       <div className={css.card}>
         <div className={css.cardHead}><div className={css.cardTitle}>家庭成员档案</div><span className={css.cardSub}>六人 · 家庭健康记录</span></div>

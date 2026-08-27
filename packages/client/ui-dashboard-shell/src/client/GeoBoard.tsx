@@ -58,9 +58,16 @@ export function GeoBoard() {
   const [contents] = useState<readonly Content[]>(SEED_CONTENTS)
   const [history, setHistory] = useState<readonly { date: string; rank: number }[]>(SEED_HISTORY)
   const [error, setError] = useState<string | null>(null)
+  const [apiReachable, setApiReachable] = useState<boolean | null>(null)
 
   const load = useCallback(async () => {
     setError(null)
+    let reachable = false
+    try {
+      const probe = await fetch(GEO_API + '/api/geo/keywords', { cache: 'no-store' })
+      reachable = probe.ok
+    } catch { reachable = false }
+    setApiReachable(reachable)
     try {
       const kw = (await fetchJson('/api/geo/keywords', { keywords: null })) as { keywords?: Keyword[] }
       const rk = (await fetchJson('/api/geo/ranks', { snapshots: null })) as { snapshots?: { keyword_id?: number; our_rank?: number; engine?: string; result_count?: number }[] }
@@ -91,8 +98,9 @@ export function GeoBoard() {
     <div className={css.board}>
       <div className={css.pageHead}>
         <div><h1 className={css.pageTitle}>GEO/SEO 看板</h1><p className={css.pageDesc}>关键词排名 · 排名历史 · 内容任务 · 真实数据 + 离线种子</p></div>
-        <div className={css.rangeRow}><button type="button" className={css.refreshBtn} onClick={load}>刷新</button></div>
+        <div className={css.rangeRow}><button type="button" className={css.refreshBtn} onClick={() => { void load() }}>刷新</button></div>
       </div>
+      {apiReachable === false && <div className={css.unavailable} role="alert">⚠️ GEO 服务（127.0.0.1:6992）不可用，当前展示的是离线种子，非实时数据；服务恢复后自动切换真实数据。</div>}
       {error && <div className={css.errorState}>GEO 数据加载异常：{error}（显示离线种子）</div>}
 
       <div className={css.card}>

@@ -483,12 +483,18 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
     // lane's goldens are interaction-specific (workspace-management drives
     // the in-app browse dialog), so pin -browse deterministically on every
     // host: patch `name` is an assertion, not an override, hence the
-    // disable+insert pair.
-    { id: 'directory-picker', disabled: true },
-    { insert: [
-      { id: 'directory-picker-browse', name: '@deepseek-ai/dsh-host-directory-picker-browse' },
-      { id: 'ui-directory-picker-browse', name: '@deepseek-ai/dsh-client-ui-directory-picker-browse' },
-    ] },
+    // disable+insert pair. An overlay that already pins browse (the Dashboard
+    // shell overlay does) supplies the same rows — skip ours then, or the
+    // combined entry list would hold duplicate loader entry ids.
+    ...composedRows.some(row => row.id === 'directory-picker-browse' || row.id === 'ui-directory-picker-browse')
+      ? []
+      : [
+        { id: 'directory-picker', disabled: true },
+        { insert: [
+          { id: 'directory-picker-browse', name: '@deepseek-ai/dsh-host-directory-picker-browse' },
+          { id: 'ui-directory-picker-browse', name: '@deepseek-ai/dsh-client-ui-directory-picker-browse' },
+        ] },
+      ],
     ...options.agentPresets === undefined
       ? []
       // Never the derived harness-home root: a developer's own presets must not

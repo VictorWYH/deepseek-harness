@@ -1,16 +1,10 @@
 /**
- * DashboardFrame: the product shell registered into the runtime's built-in
- * 'root' slot at priority -1 (lowest rank renders, so this entry shadows the
- * native AppFrame's priority-0 registration and takes over the whole browser
- * surface — the web-app bundle also disables ui-layout/ui-sidebar/
- * ui-conversation; the rank keeps the shell authoritative under partial
- * compositions too). Owns Agent selection as component-local state and
- * projects the read-only `useSessions` / `useWorkspaces` snapshots into the
- * selected Agent's dashboard (workspace-grouped Session list, stat cards).
- * Both child holes (`dashboard.sidebar` / `dashboard.main`) render through
- * `renderSlot` with built-in fallbacks, so a future phase can replace either
- * region by registering into the hole. Pure component: everything arrives
- * through the composed props shares — zero ctx or framework imports.
+ * DashboardFrame: three-column product shell. Left Agent navigation panel
+ * (collapsible to a narrow icon rail), center 6995-style board, right AI chat.
+ * The whole left panel collapses/expands together — title, nav, stats, and
+ * session count all hide/reveal as one unit, with the center column expanding
+ * into the freed space. The right column hosts the re-hosted conversation
+ * surface (ui-conversation) so the composer stays active.
  */
 import { useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
@@ -22,7 +16,6 @@ import type {
   DashboardSidebarOwnerProps,
 } from './contract/slots.ts'
 import type { DashboardKey } from './locales.ts'
-import { isAgentWorkspacePath } from './agent-workspace.ts'
 import { presetForAgent, resolveAgentPreset } from './presets.ts'
 import css from './DashboardFrame.module.css'
 
@@ -34,13 +27,9 @@ interface StatValue {
 
 /** One workspace- or ungrouped-grouped session list section. */
 export interface SessionGroup {
-  /** Stable group key (workspace id, or 'ungrouped'). */
   key: string
-  /** Group display title. */
   title: string
-  /** Owning workspace for the scoped New Session action; absent for ungrouped. */
   workspaceId?: WorkspaceId
-  /** Sessions in display order (workspace account order / host list order). */
   sessions: readonly SessionSummary[]
 }
 
@@ -51,7 +40,7 @@ export interface DashboardStats {
   running: number
 }
 
-/** Phase-1 static Agent roster; the future profile plane keys these ids. */
+/** Phase-1 static Agent roster. */
 interface AgentDef {
   id: string
   labelKey: DashboardKey
@@ -64,16 +53,6 @@ const AGENTS: readonly AgentDef[] = [
   { id: 'video', labelKey: 'agent.video' },
 ]
 
-/**
- * Project the sessions snapshot into display groups: one per Workspace that
- * accounts at least one visible Session (host account order), then the
- * ungrouped bucket for Sessions the workspace registry does not account.
- * Archived sessions are hidden from every group.
- * @param sessions - the read-only sessions list snapshot.
- * @param workspaces - the read-only workspaces list snapshot.
- * @param ungroupedTitle - resolved copy for the ungrouped bucket.
- * @returns the display groups.
- */
 export function groupSessions(
   sessions: SessionListState,
   workspaces: WorkspaceListState,
@@ -106,50 +85,7 @@ export function groupSessions(
   return groups
 }
 
-/** The Agent navigation rail — the built-in `dashboard.sidebar` fallback. */
-function AgentNav({
-  agents,
-  selectedAgentId,
-  onSelectAgent,
-  onNewSession,
-  onClose,
-  t,
-}: DashboardSidebarOwnerProps & { onClose?: () => void; t: DashboardFrameComponentProps['t'] }) {
-  return (
-    <nav className={css.agentNav} aria-label={t('nav.agents')} data-agent-selected={selectedAgentId}>
-      {onClose !== undefined && (
-        <button type="button" className={css.sidebarClose} aria-label={t('nav.close')} onClick={onClose}>
-          <span aria-hidden="true">×</span>
-        </button>
-      )}
-      <div className={css.shellTitle}>{t('shell.title')}</div>
-      <ul className={css.agentList}>
-        {agents.map(agent => (
-          <li key={agent.id}>
-            <button
-              type="button"
-              className={agent.id === selectedAgentId ? clsx(css.agentItem, css.agentItemActive) : css.agentItem}
-              aria-pressed={agent.id === selectedAgentId}
-              data-agent-id={agent.id}
-              data-agent-selected={agent.id === selectedAgentId}
-              onClick={() => { onSelectAgent(agent.id) }}
-            >
-              <span className={css.agentMark} aria-hidden="true">{agent.id.slice(0, 1).toUpperCase()}</span>
-              <span className={css.agentLabel}>{agent.label}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className={css.sidebarFoot}>
-        <button type="button" className={css.newSessionButton} data-new-session onClick={onNewSession}>
-          {t('session.new')}
-        </button>
-      </div>
-    </nav>
-  )
-}
-
-/** One stat card in the dashboard's summary row. */
+/** One stat card. */
 function StatCard({ label, value }: StatValue) {
   return (
     <div className={css.statCard}>
@@ -159,64 +95,50 @@ function StatCard({ label, value }: StatValue) {
   )
 }
 
-/** The selected Agent's dashboard — the built-in `dashboard.main` fallback. */
-function AgentDashboard({
-  selectedAgentId,
+/** The 6995-style center board: Agent dashboard with stat cards and session groups. */
+function AgentBoard({
   selectedAgentLabel,
-  sessions,
-  baselinesReady,
+  selectedAgentId,
   stats,
   groups,
-  openSession,
-  startSession,
+  baselinesReady,
+  currentSessionId,
   presetNotice,
   workspaceNotice,
+  openSession,
+  startSession,
   t,
 }: {
-  selectedAgentId: string
   selectedAgentLabel: string
-  sessions: SessionListState
-  baselinesReady: boolean
+  selectedAgentId: string
   stats: DashboardStats
   groups: readonly SessionGroup[]
-  openSession: (sessionId: SessionId) => void
-  startSession: (workspaceId?: WorkspaceId) => void
+  baselinesReady: boolean
+  currentSessionId: string | undefined
   presetNotice: string | undefined
   workspaceNotice: string | undefined
+  openSession: (sessionId: SessionId) => void
+  startSession: (workspaceId?: WorkspaceId) => void
   t: DashboardFrameComponentProps['t']
 }) {
+  const [sessionsOpen, setSessionsOpen] = useState(false)
   const cards: StatValue[] = [
     { label: t('stat.workspaces'), value: stats.workspaces },
     { label: t('stat.sessions'), value: stats.sessions },
     { label: t('stat.running'), value: stats.running },
   ]
-  const [sessionsOpen, setSessionsOpen] = useState(false)
   return (
-    <div className={css.dashboard}>
-      <header className={css.dashboardHeader}>
-        <div className={css.dashboardHeading}>
-          <h1 className={css.dashboardTitle}>{selectedAgentLabel}</h1>
-          <span className={css.dashboardAgentId}>{selectedAgentId}</span>
-        </div>
-        <button type="button" className={css.newSessionButton} data-new-session onClick={() => { startSession() }}>
-          {t('session.new')}
-        </button>
+    <div className={css.board}>
+      <header className={css.boardHeader}>
+        <h1 className={css.boardTitle}>{selectedAgentLabel}</h1>
+        <span className={css.boardAgentId}>{selectedAgentId}</span>
       </header>
-
-      {presetNotice !== undefined && (
-        <p className={css.presetNotice} role="status">{presetNotice}</p>
-      )}
-
-      {workspaceNotice !== undefined && (
-        <p className={css.presetNotice} role="status">{workspaceNotice}</p>
-      )}
-
+      {presetNotice !== undefined && <p className={css.presetNotice} role="status">{presetNotice}</p>}
+      {workspaceNotice !== undefined && <p className={css.presetNotice} role="status">{workspaceNotice}</p>}
       <section className={css.statsRow} aria-label={t('shell.title')}>
         {cards.map(card => <StatCard key={card.label} {...card} />)}
       </section>
-
       {!baselinesReady && <p className={css.loading}>{t('shell.loading')}</p>}
-
       <button
         type="button"
         className={css.sessionsToggle}
@@ -226,7 +148,6 @@ function AgentDashboard({
         <span>{t('sessions.list')}</span>
         <span aria-hidden="true">{sessionsOpen ? '▾' : '▸'}</span>
       </button>
-
       {sessionsOpen && (
         <section className={css.sessionGroups}>
           {groups.length === 0
@@ -236,11 +157,7 @@ function AgentDashboard({
                 <header className={css.groupHeader}>
                   <span className={css.groupTitle}>{group.title}</span>
                   {group.workspaceId !== undefined && (
-                    <button
-                      type="button"
-                      className={css.groupNew}
-                      onClick={() => { startSession(group.workspaceId) }}
-                    >
+                    <button type="button" className={css.groupNew} onClick={() => { startSession(group.workspaceId) }}>
                       {t('session.new')}
                     </button>
                   )}
@@ -250,21 +167,16 @@ function AgentDashboard({
                     <li key={session.id}>
                       <button
                         type="button"
-                        className={session.id === sessions.current
+                        className={session.id === currentSessionId
                           ? clsx(css.sessionRow, css.sessionRowCurrent)
                           : css.sessionRow}
                         aria-label={`${t('session.open')}: ${session.displayTitle}`}
                         onClick={() => { openSession(session.id) }}
                       >
-                        <span
-                          className={session.running ? clsx(css.statusDot, css.statusRunning) : css.statusDot}
-                          aria-hidden="true"
-                        />
+                        <span className={session.running ? clsx(css.statusDot, css.statusRunning) : css.statusDot} aria-hidden="true" />
                         <span className={css.sessionTitle}>{session.displayTitle}</span>
                         <span className={css.sessionMeta}>{session.cwd ?? session.id}</span>
-                        {session.id === sessions.current && (
-                          <span className={css.currentBadge}>{t('session.current')}</span>
-                        )}
+                        {session.id === currentSessionId && <span className={css.currentBadge}>{t('session.current')}</span>}
                       </button>
                     </li>
                   ))}
@@ -277,11 +189,60 @@ function AgentDashboard({
   )
 }
 
+/** The left navigation panel: Agents, stats, new session. Collapses to a narrow rail. */
+function AgentNav({
+  agents,
+  selectedAgentId,
+  onSelectAgent,
+  onNewSession,
+  collapsed,
+  stats,
+  t,
+}: DashboardSidebarOwnerProps & {
+  collapsed: boolean
+  stats: DashboardStats
+  t: DashboardFrameComponentProps['t']
+}) {
+  return (
+    <nav className={collapsed ? clsx(css.agentNav, css.agentNavCollapsed) : css.agentNav} aria-label={t('nav.agents')} data-agent-selected={selectedAgentId}>
+      <div className={collapsed ? css.shellTitleCollapsed : css.shellTitle}>
+        {collapsed ? '☰' : t('shell.title')}
+      </div>
+      <ul className={css.agentList}>
+        {agents.map(agent => (
+          <li key={agent.id}>
+            <button
+              type="button"
+              className={agent.id === selectedAgentId ? clsx(css.agentItem, css.agentItemActive, collapsed ? css.agentItemCollapsed : '') : clsx(css.agentItem, collapsed ? css.agentItemCollapsed : '')}
+              aria-pressed={agent.id === selectedAgentId}
+              data-agent-id={agent.id}
+              data-agent-selected={agent.id === selectedAgentId}
+              onClick={() => { onSelectAgent(agent.id) }}
+              title={collapsed ? agent.label : undefined}
+            >
+              <span className={css.agentMark} aria-hidden="true">{agent.id.slice(0, 1).toUpperCase()}</span>
+              {!collapsed && <span className={css.agentLabel}>{agent.label}</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {!collapsed && (
+        <div className={css.sidebarStats}>
+          <span className={css.sidebarStatItem}>{t('stat.sessions')}: {stats.sessions}</span>
+          <span className={css.sidebarStatItem}>{t('stat.running')}: {stats.running}</span>
+        </div>
+      )}
+      <div className={css.sidebarFoot}>
+        <button type="button" className={css.newSessionButton} data-new-session onClick={onNewSession} title={collapsed ? t('session.new') : undefined}>
+          {collapsed ? '+' : t('session.new')}
+        </button>
+      </div>
+    </nav>
+  )
+}
+
 /**
- * Render the two-column product shell. All live data arrives through the
- * global standard hooks; the only local state is the selected Agent.
- * @param props - composed slot props (contract/slots.ts).
- * @returns the shell element tree.
+ * Three-column product shell.
  */
 export function DashboardFrame({
   useSessions,
@@ -296,17 +257,14 @@ export function DashboardFrame({
   const defaultAgent = AGENTS[0]
   if (defaultAgent === undefined) throw new Error('dashboard shell: Agent roster is empty')
   const [selectedAgentId, setSelectedAgentId] = useState<string>(defaultAgent.id)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  /** Installed preset ids from the live roster; null while the lookup is in flight. */
+  const [leftCollapsed, setLeftCollapsed] = useState(false)
   const [availablePresets, setAvailablePresets] = useState<ReadonlySet<string> | null>(null)
   const sessions = useSessions(s => s)
   const workspaces = useWorkspaces(s => s)
 
   useEffect(() => {
     let live = true
-    void resolveAgentPresets().then((ids) => {
-      if (live) setAvailablePresets(ids)
-    })
+    void resolveAgentPresets().then((ids) => { if (live) setAvailablePresets(ids) })
     return () => { live = false }
   }, [resolveAgentPresets])
 
@@ -318,22 +276,25 @@ export function DashboardFrame({
     () => AGENTS.map(agent => ({ id: agent.id, label: t(agent.labelKey) })),
     [t],
   )
-  /** The selected Agent's usable preset against the live roster: the mapped
-   *  preset when installed, else the deployment default (`standard`) when
-   *  installed, else none (the injected action also re-guards the create).
-   *  While the roster is still loading the mapped preset is passed optimistically
-   *  — the injected startSession re-checks availability before the create. */
   const usablePreset = useMemo(() => {
     if (availablePresets === null) return presetForAgent(selectedAgent.id)
     return resolveAgentPreset(selectedAgent.id, availablePresets)
   }, [availablePresets, selectedAgent])
-  /** Surface a missing-preset notice only when NO usable preset resolved —
-   *  neither the Agent's mapped preset nor the deployment default exists. */
-  // Auto-create-and-connect the selected Agent's default Workspace once the
-  // baselines are ready: the injected action ensures `<home>/dashboard/<agentId>`
-  // exists (creating the directory + registering the Workspace idempotently),
-  // connects its blank Session, and returns the session id. The frame opens it,
-  // so a fresh home becomes immediately conversable with no workspace picker.
+
+  const presetNotice = useMemo(() => {
+    if (availablePresets === null) return undefined
+    const resolved = resolveAgentPreset(selectedAgent.id, availablePresets)
+    if (resolved !== undefined) return undefined
+    const mapped = presetForAgent(selectedAgent.id)
+    return t('preset.missing', { preset: mapped ?? 'standard' })
+  }, [availablePresets, selectedAgent, t])
+
+  const workspaceNotice = useMemo(() => {
+    if (!workspaces.baselinesReady) return undefined
+    const hasDefault = workspaces.items.some(workspace => workspace.path.endsWith(`dashboard/${selectedAgent.id}`))
+    return hasDefault ? undefined : t('workspace.none')
+  }, [workspaces.baselinesReady, workspaces.items, selectedAgent.id, t])
+
   useEffect(() => {
     if (!workspaces.baselinesReady) return
     let cancelled = false
@@ -344,40 +305,23 @@ export function DashboardFrame({
     return () => { cancelled = true }
   }, [ensureAgentWorkspace, openSession, selectedAgent.id, usablePreset, workspaces.baselinesReady])
 
-  const presetNotice = useMemo(() => {
-    if (availablePresets === null) return undefined
-    const resolved = resolveAgentPreset(selectedAgent.id, availablePresets)
-    if (resolved !== undefined) return undefined
-    const mapped = presetForAgent(selectedAgent.id)
-    return t('preset.missing', { preset: mapped ?? 'standard' })
-  }, [availablePresets, selectedAgent, t])
   const startWithPreset = (workspaceId?: WorkspaceId): void => {
     void startSession(workspaceId, usablePreset)
   }
   const stats = useMemo<DashboardStats>(() => ({
     workspaces: workspaces.items.length,
     sessions: sessions.ids.length,
-    running: sessions.ids.reduce(
-      (count, id) => count + (sessions.byId[id]?.running === true ? 1 : 0),
-      0,
-    ),
+    running: sessions.ids.reduce((count, id) => count + (sessions.byId[id]?.running === true ? 1 : 0), 0),
   }), [sessions, workspaces])
   const groups = useMemo(
     () => groupSessions(sessions, workspaces, t('group.ungrouped')),
     [sessions, workspaces, t],
   )
-  /** Explicit init state: baselines ready but the Agent has no default Workspace. */
-  const workspaceNotice = useMemo(() => {
-    if (!workspaces.baselinesReady) return undefined
-    const hasDefault = workspaces.items.some(workspace => isAgentWorkspacePath(workspace.path, selectedAgent.id))
-    return hasDefault ? undefined : t('workspace.none')
-  }, [workspaces.baselinesReady, workspaces.items, selectedAgent.id, t])
-
   const sidebarOwner: DashboardSidebarOwnerProps = {
     agents,
     selectedAgentId: selectedAgent.id,
-    onSelectAgent: (agentId) => { setSelectedAgentId(agentId); setSidebarOpen(false) },
-    onNewSession: () => { startWithPreset(); setSidebarOpen(false) },
+    onSelectAgent: (agentId) => { setSelectedAgentId(agentId) },
+    onNewSession: () => { startWithPreset() },
   }
   const mainOwner: DashboardMainOwnerProps = {
     selectedAgentId: selectedAgent.id,
@@ -385,41 +329,49 @@ export function DashboardFrame({
   }
 
   return (
-    <div className={sidebarOpen ? clsx(css.frame, css.frameSidebarOpen) : css.frame} data-dsh-shell="dashboard">
-      <button type="button" className={css.mobileMenuButton} aria-label={t('nav.open')} aria-expanded={sidebarOpen} onClick={() => { setSidebarOpen(true) }}>
-        <span aria-hidden="true">☰</span>
+    <div className={leftCollapsed ? clsx(css.frame, css.frameCollapsed) : css.frame} data-dsh-shell="dashboard">
+      {/* Collapse toggle button */}
+      <button
+        type="button"
+        className={css.collapseToggle}
+        aria-label={leftCollapsed ? t('nav.open') : t('nav.close')}
+        onClick={() => { setLeftCollapsed(c => !c) }}
+      >
+        <span aria-hidden="true">{leftCollapsed ? '▸' : '◂'}</span>
       </button>
-      {sidebarOpen && <button type="button" className={css.sidebarScrim} aria-label={t('nav.close')} onClick={() => { setSidebarOpen(false) }} />}
-      <aside className={css.sidebarRegion}>
+
+      {/* Left column: Agent navigation panel */}
+      <aside className={leftCollapsed ? clsx(css.leftPanel, css.leftPanelCollapsed) : css.leftPanel}>
         {renderSlot('dashboard.sidebar', sidebarOwner, {
-          fallback: <AgentNav {...sidebarOwner} onClose={() => { setSidebarOpen(false) }} t={t} />,
+          fallback: <AgentNav {...sidebarOwner} collapsed={leftCollapsed} stats={stats} t={t} />,
         })}
       </aside>
-      <main className={css.mainRegion}>
+
+      {/* Center column: 6995-style board */}
+      <main className={css.centerPanel}>
         {renderSlot('dashboard.main', mainOwner, {
           fallback: (
-            <AgentDashboard
-              selectedAgentId={mainOwner.selectedAgentId}
+            <AgentBoard
               selectedAgentLabel={mainOwner.selectedAgentLabel}
-              sessions={sessions}
-              baselinesReady={workspaces.baselinesReady}
+              selectedAgentId={mainOwner.selectedAgentId}
               stats={stats}
               groups={groups}
-              openSession={openSession}
-              startSession={startWithPreset}
+              baselinesReady={workspaces.baselinesReady}
+              currentSessionId={sessions.current}
               presetNotice={presetNotice}
               workspaceNotice={workspaceNotice}
+              openSession={openSession}
+              startSession={startWithPreset}
               t={t}
             />
           ),
         })}
-        {/* The re-hosted conversation seat: ui-conversation's ConversationRoot
-            renders the hero when no session is current and the live chat when
-            one is — the Dashboard main region hosts it below the Agent board. */}
-        <section className={css.conversationRegion} data-conversation-host>
-          {renderSlot('conversation', {})}
-        </section>
       </main>
+
+      {/* Right column: AI chat */}
+      <aside className={css.rightPanel} data-conversation-host="true">
+        {renderSlot('conversation', {})}
+      </aside>
     </div>
   )
 }

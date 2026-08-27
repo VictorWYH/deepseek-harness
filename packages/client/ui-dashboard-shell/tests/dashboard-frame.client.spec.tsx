@@ -170,13 +170,11 @@ describe('DashboardFrame product shell', () => {
 
   it('starts a New Session with the resolved preset globally and per Workspace', () => {
     const b = mount()
-    // Nav foot + dashboard header（会话组内的按钮在展开后才渲染）。
+    const nav = screen.getByRole('navigation', { name: 'Agents' })
+    // 展开会话列表后：导航 1 个 + 每个工作区组 1 个（看板头不再重复放）。
     fireEvent.click(screen.getByRole('button', { name: /Sessions/ }))
-    const newSessionButtons = screen.getAllByRole('button', { name: 'New session' })
-    expect(newSessionButtons).toHaveLength(4)
-    fireEvent.click(newSessionButtons[0]!)
-    expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
-    fireEvent.click(newSessionButtons[1]!)
+    const navNew = within(nav).getByRole('button', { name: 'New session' })
+    fireEvent.click(navNew)
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
     const groupW1 = screen.getByText('ws-w1').closest('section')!
     fireEvent.click(within(groupW1).getByRole('button', { name: 'New session' }))
@@ -186,7 +184,7 @@ describe('DashboardFrame product shell', () => {
     expect(b.startSession).toHaveBeenLastCalledWith('w2', 'standard')
     // After switching Agent the resolved preset still rides the shipped default.
     fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
+    fireEvent.click(within(nav).getByRole('button', { name: 'New session' }))
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
   })
 
@@ -198,7 +196,8 @@ describe('DashboardFrame product shell', () => {
     // The selected coder Agent's mapped preset is not installed → notice.
     expect(await screen.findByText('Preset "standard" is not installed; the default composition will be used')).toBeTruthy()
     // Nothing usable is passed to the workspaces action either.
-    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
+    const nav = screen.getByRole('navigation', { name: 'Agents' })
+    fireEvent.click(within(nav).getByRole('button', { name: 'New session' }))
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, undefined)
   })
 
@@ -208,7 +207,8 @@ describe('DashboardFrame product shell', () => {
     // (the deployment default) IS installed for every Agent.
     await screen.findByRole('heading', { name: 'Coder Agent' })
     expect(screen.queryByText(/is not installed/)).toBeNull()
-    fireEvent.click(screen.getAllByRole('button', { name: 'New session' })[1]!)
+    const nav = screen.getByRole('navigation', { name: 'Agents' })
+    fireEvent.click(within(nav).getByRole('button', { name: 'New session' }))
     expect(b.startSession).toHaveBeenLastCalledWith(undefined, 'standard')
   })
 
@@ -262,40 +262,45 @@ describe('DashboardFrame product shell', () => {
     expect(screen.getByText('Loading…')).toBeTruthy()
   })
 
-  it('opens the mobile sidebar from the menu button', () => {
+  it('collapses the whole left navigation panel to a narrow rail', () => {
     const b = mount()
-    const menu = screen.getByRole('button', { name: 'Open Agent navigation' })
-    // Closed: only the rail's own close control is present — the scrim is not rendered.
-    expect(menu.getAttribute('aria-expanded')).toBe('false')
-    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(1)
-    expect(b.frame().className).not.toContain('frameSidebarOpen')
-    fireEvent.click(menu)
-    // Open: the scrim joins the rail close control and the frame enters the mobile state.
-    expect(menu.getAttribute('aria-expanded')).toBe('true')
-    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(2)
-    expect(b.frame().className).toContain('frameSidebarOpen')
+    const nav = screen.getByRole('navigation', { name: 'Agents' })
+    // Expanded: nav title, Agent label, sidebar stats, and New Session label render.
+    expect(within(nav).getByText('Agent Dashboard')).toBeTruthy()
+    expect(within(nav).getByText('Coder Agent')).toBeTruthy()
+    expect(within(nav).getByText('Sessions: 3')).toBeTruthy()
+    expect(within(nav).getByText('Running: 1')).toBeTruthy()
+    // The toggle names the close action while expanded.
+    fireEvent.click(screen.getByRole('button', { name: 'Close Agent navigation' }))
+    // Collapsed: the whole nav content hides together — title, labels, and stats.
+    expect(b.frame().className).toContain('frameCollapsed')
+    expect(within(nav).queryByText('Agent Dashboard')).toBeNull()
+    expect(within(nav).queryByText('Coder Agent')).toBeNull()
+    expect(within(nav).queryByText('Sessions: 3')).toBeNull()
+    // The rail still shows Agent mark initials and the toggle now opens.
+    expect(within(nav).getByText('C')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Open Agent navigation' })).toBeTruthy()
   })
 
-  it('closes the mobile sidebar from the scrim overlay', () => {
+  it('re-expands the left navigation panel from the narrow rail', () => {
     const b = mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Close Agent navigation' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open Agent navigation' }))
-    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(2)
-    // The scrim renders before the aside, so it leads the close-named buttons.
-    fireEvent.click(screen.getAllByRole('button', { name: 'Close Agent navigation' })[0]!)
-    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(1)
-    expect(screen.getByRole('button', { name: 'Open Agent navigation' }).getAttribute('aria-expanded')).toBe('false')
-    expect(b.frame().className).not.toContain('frameSidebarOpen')
+    expect(b.frame().className).not.toContain('frameCollapsed')
+    // The whole nav content returned together.
+    const nav = screen.getByRole('navigation', { name: 'Agents' })
+    expect(within(nav).getByText('Agent Dashboard')).toBeTruthy()
+    expect(within(nav).getByText('Coder Agent')).toBeTruthy()
+    expect(within(nav).getByText('Sessions: 3')).toBeTruthy()
   })
 
-  it('auto-closes the mobile sidebar when an Agent is selected', () => {
-    const b = mount()
-    fireEvent.click(screen.getByRole('button', { name: 'Open Agent navigation' }))
-    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(2)
-    fireEvent.click(screen.getByRole('button', { name: 'Invest Agent' }))
-    // The selection landed and the sidebar collapsed back to the closed state.
+  it('keeps Agent selection while the left panel is collapsed', () => {
+    mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Close Agent navigation' }))
+    // The rail still lists every Agent mark; clicking one switches the board.
+    const nav = screen.getByRole('navigation', { name: 'Agents' })
+    fireEvent.click(within(nav).getByRole('button', { name: 'Invest Agent' }))
     expect(screen.getByRole('heading', { name: 'Invest Agent' })).toBeTruthy()
-    expect(screen.getAllByRole('button', { name: 'Close Agent navigation' })).toHaveLength(1)
-    expect(screen.getByRole('button', { name: 'Open Agent navigation' }).getAttribute('aria-expanded')).toBe('false')
-    expect(b.frame().className).not.toContain('frameSidebarOpen')
+    expect(screen.getByText('invest')).toBeTruthy()
   })
 })

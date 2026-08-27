@@ -1,77 +1,28 @@
-/* Product shell chrome. Semantic --dsw-alias-* tokens only (docs/web-styling.md);
-   light/dark variants come from the theme owner, never from this sheet. */
+/* Three-column product shell chrome. Semantic --dsw-alias-* tokens only
+   (docs/web-styling.md); light/dark variants come from the theme owner. */
 
 .frame {
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: clamp(220px, 25%, 300px) minmax(0, 1fr) clamp(280px, 25%, 380px);
   height: 100%;
   overflow: hidden;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
 }
 
-.sidebarRegion {
+/* Collapsed: left panel becomes a narrow icon rail (64px); center expands. */
+.frameCollapsed {
+  grid-template-columns: 64px minmax(0, 1fr) clamp(280px, 25%, 380px);
+}
+
+/* ── Left Agent navigation panel ───────────────────────────────────────── */
+.leftPanel {
   min-width: 0;
   min-height: 0;
   overflow: hidden auto;
   background: var(--dsw-alias-bg-layer-3);
   border-right: 1px solid var(--dsw-alias-border-l2);
-  z-index: 3;
 }
-
-.mobileMenuButton,
-.sidebarClose,
-.sidebarScrim {
-  display: none;
-}
-
-.sidebarClose {
-  align-items: center;
-  justify-content: center;
-  align-self: flex-end;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font-size: 26px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.mobileMenuButton:focus-visible,
-.sidebarClose:focus-visible,
-.agentItem:focus-visible,
-.newSessionButton:focus-visible,
-.sessionRow:focus-visible {
-  outline: 2px solid var(--dsw-alias-brand-text);
-  outline-offset: 2px;
-}
-
-.mainRegion {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--dsw-alias-bg-layer-1);
-}
-
-/* The re-hosted conversation seat: flexes to the remaining main-region
-   height so ui-conversation's own chat/composer scrolling stays intact. */
-.conversationRegion {
-  flex: 1 1 0;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-top: 1px solid var(--dsw-alias-border-l2);
-}
-
-/* ── Agent navigation rail (dashboard.sidebar fallback) ─────────────────── */
 
 .agentNav {
   display: flex;
@@ -81,12 +32,24 @@
   padding: 16px 12px;
 }
 
+.agentNavCollapsed {
+  padding: 16px 8px;
+  align-items: center;
+}
+
 .shellTitle {
   padding: 0 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--dsw-alias-label-secondary);
   letter-spacing: 0.02em;
+  text-align: left;
+}
+
+.shellTitleCollapsed {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dsw-alias-label-primary);
 }
 
 .agentList {
@@ -97,6 +60,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  width: 100%;
 }
 
 .agentItem {
@@ -122,6 +86,11 @@
   background: var(--dsw-alias-interactive-bg-hover-accent);
 }
 
+.agentItemCollapsed {
+  justify-content: center;
+  padding: 8px;
+}
+
 .agentMark {
   display: inline-flex;
   align-items: center;
@@ -144,12 +113,23 @@
   white-space: nowrap;
 }
 
+.sidebarStats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+}
+
+.sidebarStatItem {
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
 .sidebarFoot {
   padding-top: 8px;
   border-top: 1px solid var(--dsw-alias-border-l1);
 }
-
-/* ── Shared action buttons ──────────────────────────────────────────────── */
 
 .newSessionButton {
   display: inline-flex;
@@ -170,54 +150,56 @@
   background: var(--dsw-alias-button-primary-hover);
 }
 
-/* ── Agent dashboard (dashboard.main fallback) ──────────────────────────── */
+/* ── Collapse toggle button (floats over the left panel edge) ──────────── */
+.collapseToggle {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-layer-3);
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
 
-.dashboard {
-  flex: 0 1 auto;
+.collapseToggle:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.frameCollapsed .collapseToggle {
+  left: 18px;
+}
+
+/* ── Center: 6995-style board ──────────────────────────────────────────── */
+.centerPanel {
+  min-width: 0;
   min-height: 0;
   overflow: hidden auto;
+  background: var(--dsw-alias-bg-layer-1);
+  border-right: 1px solid var(--dsw-alias-border-l2);
+}
+
+.board {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 1080px;
   padding: 24px 28px;
 }
 
-.dashboardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.dashboardHeading {
+.boardHeader {
   display: flex;
   align-items: baseline;
   gap: 10px;
   min-width: 0;
-}
-
-.dashboardTitle {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--dsw-alias-label-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dashboardAgentId {
-  flex: none;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.statsRow {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
 }
 
 .presetNotice {
@@ -228,6 +210,29 @@
   background: var(--dsw-alias-bg-warn, rgba(180, 83, 9, 0.12));
   color: var(--dsw-alias-label-warn, #d97706);
   font-size: 13px;
+}
+
+.boardTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boardAgentId {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .statCard {
@@ -251,12 +256,6 @@
   color: var(--dsw-alias-label-secondary);
 }
 
-.sessionGroups {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .sessionsToggle {
   display: flex;
   align-items: center;
@@ -276,6 +275,12 @@
 
 .sessionsToggle:hover {
   color: var(--dsw-alias-label-primary);
+}
+
+.sessionGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .sessionGroup {
@@ -396,125 +401,72 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
-/* Hide the native hero workspace picker (chip + slot): the per-Agent
-   default workspace auto-connect replaces it. The chip is localized to
-   zh ("选择工作区") and en ("Choose workspace"); cover both. */
-.conversationRegion :global(button[aria-label="选择工作区"]),
-.conversationRegion :global(button[aria-label="Choose workspace"]),
-.conversationRegion :global([data-slot="conversation.hero.workspace"]) {
+/* ── Right: AI chat panel ──────────────────────────────────────────────── */
+.rightPanel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+/* Hide the native hero workspace picker (chip + slot): the per-Agent default
+   workspace auto-connect replaces it. */
+.rightPanel :global(button[aria-label="选择工作区"]),
+.rightPanel :global(button[aria-label="Choose workspace"]),
+.rightPanel :global([data-slot="conversation.hero.workspace"]) {
   display: none;
 }
 
-@media (max-width: 720px) {
+/* ── Narrow screens: stack into a mobile layout ────────────────────────── */
+@media (max-width: 900px) {
   .frame {
-    display: block;
-    position: relative;
-    width: 100%;
-    min-width: 0;
+    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 300px;
+    grid-template-areas:
+      'rail center'
+      'chat  chat';
   }
 
-  .sidebarRegion {
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: min(280px, 86vw);
-    max-width: 280px;
-    transform: translateX(-105%);
-    transition: transform 180ms ease;
-    box-shadow: 8px 0 24px rgb(0 0 0 / 18%);
+  .frameCollapsed {
+    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 300px;
+    grid-template-areas:
+      'rail center'
+      'chat  chat';
   }
 
-  .frameSidebarOpen .sidebarRegion {
-    transform: translateX(0);
+  .leftPanel {
+    grid-area: rail;
   }
 
-  .frameSidebarOpen .sidebarScrim {
-    display: block;
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    border: 0;
-    background: rgb(0 0 0 / 32%);
-    cursor: pointer;
+  .centerPanel {
+    grid-area: center;
+    border-right: none;
   }
 
-  .mobileMenuButton {
-    display: inline-flex;
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 1;
+  .rightPanel {
+    grid-area: chat;
+  }
+
+  .agentNav {
+    padding: 16px 8px;
     align-items: center;
+  }
+
+  .agentItem {
     justify-content: center;
-    width: 38px;
-    height: 38px;
-    padding: 0;
-    border: 1px solid var(--dsw-alias-border-l2);
-    border-radius: 9px;
-    background: var(--dsw-alias-bg-layer-3);
-    color: var(--dsw-alias-label-primary);
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
+    padding: 8px;
   }
 
-  .frameSidebarOpen .mobileMenuButton {
+  .agentLabel,
+  .shellTitle,
+  .sidebarStats {
     display: none;
   }
 
-  .sidebarClose {
-    display: inline-flex;
-  }
-
-  .mainRegion {
-    width: 100%;
-    min-width: 0;
-    min-height: 100%;
-  }
-
-  .dashboard {
-    max-width: none;
-    padding: 64px 16px 20px;
-  }
-
-  .dashboardHeader {
-    align-items: flex-start;
-  }
-
-  .dashboardHeading {
-    flex-wrap: wrap;
-    gap: 4px 8px;
-  }
-
-  .dashboardTitle {
-    font-size: 18px;
-  }
-
-  .statsRow {
-    gap: 8px;
-  }
-
-  .statCard {
-    padding: 10px;
-  }
-
-  .statValue {
-    font-size: 18px;
-  }
-
-  .sessionMeta {
-    display: none;
-  }
-
-  .sessionRow {
-    padding: 10px 8px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebarRegion {
-    transition: none;
+  .newSessionButton {
+    padding: 8px;
   }
 }

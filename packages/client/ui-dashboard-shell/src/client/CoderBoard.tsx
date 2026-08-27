@@ -95,23 +95,23 @@ function pad(n: number): string { return n < 10 ? `0${n}` : String(n) }
 function fmtDT(iso: string | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return String(iso)
+  if (Number.isNaN(d.getTime())) return iso
   return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 function fmtFull(iso: string | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return String(iso)
+  if (Number.isNaN(d.getTime())) return iso
   return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 function fmtTokens(n: number | string | undefined): string {
-  if (n === undefined || n === null || n === '') return '—'
+  if (n === undefined || n === '') return '—'
   const num = Number(n)
   if (Number.isNaN(num)) return '—'
   return num >= 10000 ? `${(num / 10000).toFixed(1).replace(/\.0$/, '')}万` : String(num)
 }
 function fmtCost(c: number | string | undefined): string {
-  if (c === undefined || c === null || c === '') return ''
+  if (c === undefined || c === '') return ''
   const n = Number(c)
   if (Number.isNaN(n) || n <= 0) return typeof c === 'number' && c <= 0 ? '¥0' : ''
   if (n < 0.01) return '¥<0.01'
@@ -121,14 +121,14 @@ function fmtCost(c: number | string | undefined): string {
   return `¥${s}`
 }
 function agentName(from: string | undefined): string {
-  const f = String(from ?? '').toLowerCase()
+  const f = (from ?? '').toLowerCase()
   if (AGENT_NAMES[f]) return AGENT_NAMES[f] ?? ''
   for (const key of Object.keys(AGENT_NAMES)) if (f.includes(key)) return AGENT_NAMES[key] ?? ''
   return from || '未知'
 }
 
 function stateOf(t: CoderTask): string {
-  const s = String(t.status ?? '').toLowerCase()
+  const s = (t.status ?? '').toLowerCase()
   return ['running', 'queued', 'done', 'failed', 'cancelled'].includes(s) ? s : 'queued'
 }
 function computeStats(tasks: readonly CoderTask[]) {
@@ -202,7 +202,7 @@ function TaskDetailModal({ task, onClose }: { task: CoderTask; onClose: () => vo
     ['投递人', `${icon} ${fromName}`], ['from', task.from],
     ['项目', task.project], ['优先级', task.priority], ['类型', task.type],
     ['创建', fmtFull(task.created_at)], ['开始', fmtFull(task.started_at)], ['完成', fmtFull(task.finished_at)],
-  ].filter(([, v]) => v !== undefined && v !== null && v !== '')
+  ].filter(([, v]) => v !== undefined && v !== '')
   return (
     <div className={css.modal} role="dialog" aria-modal="true" aria-label="任务详情">
       <div className={css.modalBackdrop} onClick={onClose} />
@@ -269,7 +269,7 @@ function colorizeLog(content: string): string {
 
 function escapeHtml(value: string): string {
   const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
-  return String(value).replace(/[&<>"']/g, c => map[c] ?? c)
+  return value.replace(/[&<>"']/g, c => map[c] ?? c)
 }
 
 /**
@@ -295,7 +295,7 @@ export function CoderBoard() {
       .then(r => r.json())
       .then((payload: { tasks?: CoderTask[] }) => {
         const list = payload.tasks ?? []
-        setTasks(list.map(t => ({ ...t, id: t.id ?? t.task_id ?? String(Math.random()) })))
+        setTasks(list.map(t => ({ ...t, id: t.id || t.task_id || String(Math.random()) })))
         setConnected(true)
         setLoading(false)
         setRefreshAt(clock())
@@ -310,7 +310,7 @@ export function CoderBoard() {
   useEffect(() => {
     load()
     const timer = setInterval(load, REFRESH_MS)
-    return () => clearInterval(timer)
+    return () => { clearInterval(timer) }
   }, [load])
 
   // 实时输出轮询
@@ -333,7 +333,7 @@ export function CoderBoard() {
     if (!liveTask) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLiveTask(null) }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    return () => { document.removeEventListener('keydown', onKey) }
   }, [liveTask])
 
   const stats = useMemo(() => computeStats(tasks), [tasks])
@@ -358,8 +358,8 @@ export function CoderBoard() {
     ? (liveLog.exists
       ? colorizeLog(liveLog.content ?? '')
       : (liveTask.status === 'running' || liveTask.status === 'queued'
-        ? '<div class="' + css.logHeartbeat + '">（实时日志尚未生成，等待 dsh 输出…）</div>'
-        : '<div class="' + css.logHeartbeat + '">（该任务没有保留执行日志）</div>'))
+        ? '<div class="' + (css.logHeartbeat ?? '') + '">（实时日志尚未生成，等待 dsh 输出…）</div>'
+        : '<div class="' + (css.logHeartbeat ?? '') + '">（该任务没有保留执行日志）</div>'))
     : ''
   const liveUsage = liveLog.usage
   const liveHasUsage = !!liveUsage
@@ -386,9 +386,9 @@ export function CoderBoard() {
       <div className={css.kpis}>
         {FILTERS.map((f) => {
           const on = filter === f.key
-          const value = f.key === 'all' ? stats.total : (stats[f.key as keyof typeof stats] ?? 0)
+          const value = f.key === 'all' ? stats.total : (stats[f.key as keyof typeof stats])
           return (
-            <button key={f.key} type="button" className={clsx(css.kpi, on ? css.kpiActive : null)} data-filter={f.key} aria-pressed={on} onClick={() => applyFilter(f.key)}>
+            <button key={f.key} type="button" className={clsx(css.kpi, on ? css.kpiActive : null)} data-filter={f.key} aria-pressed={on} onClick={() => { applyFilter(f.key) }}>
               <div className={css.kpiLabel}><span className={css.kpiDot} style={{ background: f.color }} /><span>{f.label}</span></div>
               <div className={css.kpiValue} style={{ color: f.color }}>{value}</div>
               <div className={css.kpiHint}>{f.key === 'all' ? (on ? '已全部展开' : '全部展开') : (on ? '已聚焦' : '点击聚焦')}</div>
@@ -414,7 +414,7 @@ export function CoderBoard() {
           }
           return (
             <div key={g.key} className={clsx(css.group, open ? css.groupOpen : null)}>
-              <button type="button" className={css.groupHead} data-group={g.key} aria-expanded={open} onClick={() => toggleGroup(g.key)}>
+              <button type="button" className={css.groupHead} data-group={g.key} aria-expanded={open} onClick={() => { toggleGroup(g.key) }}>
                 <span className={css.groupArrow} aria-hidden="true">▸</span>
                 <span className={clsx(css.statusDot, st.dot)} />
                 <span className={css.groupName}>{g.title}</span>
@@ -431,7 +431,7 @@ export function CoderBoard() {
                             <TaskCard
                               key={t.id}
                               task={t}
-                              onOpen={() => setDetailId(t.id)}
+                              onOpen={() => { setDetailId(t.id) }}
                               onLive={() => { setLiveLog({}); setLivePaused(false); setLiveTask(t) }}
                             />
                           ))}
@@ -447,11 +447,11 @@ export function CoderBoard() {
         })}
       </div>
 
-      {detailTask && <TaskDetailModal task={detailTask} onClose={() => setDetailId(null)} />}
+      {detailTask && <TaskDetailModal task={detailTask} onClose={() => { setDetailId(null) }} />}
 
       {liveTask && (
         <div className={clsx(css.modal, css.liveModal)}>
-          <div className={css.modalBackdrop} onClick={() => setLiveTask(null)} />
+          <div className={css.modalBackdrop} onClick={() => { setLiveTask(null) }} />
           <div className={clsx(css.modalPanel, css.livePanel)}>
             <div className={css.modalHead}>
               <div className={css.liveHead}>
@@ -463,8 +463,8 @@ export function CoderBoard() {
               </div>
               <div className={css.liveHeadRight}>
                 <span className={css.liveHint}>每 {LIVE_POLL_MS / 1000} 秒自动刷新</span>
-                <button type="button" className={css.liveButtonSmall} onClick={() => setLivePaused(p => !p)}>{livePaused ? '继续' : '暂停'}</button>
-                <button type="button" className={css.modalClose} aria-label="关闭" onClick={() => setLiveTask(null)}>✕</button>
+                <button type="button" className={css.liveButtonSmall} onClick={() => { setLivePaused(p => !p) }}>{livePaused ? '继续' : '暂停'}</button>
+                <button type="button" className={css.modalClose} aria-label="关闭" onClick={() => { setLiveTask(null) }}>✕</button>
               </div>
             </div>
             {liveHasUsage ? (

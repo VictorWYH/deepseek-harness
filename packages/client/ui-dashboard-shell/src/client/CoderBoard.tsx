@@ -56,15 +56,15 @@ export interface StatusMeta {
 }
 
 const STATUS_META: Record<string, StatusMeta> = {
-  running: { label: '执行中', dot: 'statusDotRunning', pill: 'pillUp' },
-  queued: { label: '排队中', dot: 'statusDotQueued', pill: 'pillWarn' },
-  done: { label: '已完成', dot: 'statusDotDone', pill: 'pillInfo' },
-  failed: { label: '失败', dot: 'statusDotFailed', pill: 'pillDown' },
-  cancelled: { label: '已作废', dot: 'statusDotFailed', pill: 'pillDown' },
+  running: { label: '执行中', dot: (css.statusDotRunning ?? ''), pill: (css.pillUp ?? '') },
+  queued: { label: '排队中', dot: (css.statusDotQueued ?? ''), pill: (css.pillWarn ?? '') },
+  done: { label: '已完成', dot: (css.statusDotDone ?? ''), pill: (css.pillInfo ?? '') },
+  failed: { label: '失败', dot: (css.statusDotFailed ?? ''), pill: (css.pillDown ?? '') },
+  cancelled: { label: '已作废', dot: (css.statusDotFailed ?? ''), pill: (css.pillDown ?? '') },
 }
 
 /** Fallback status meta, guaranteed present so lookups never yield undefined. */
-const DEFAULT_META: StatusMeta = STATUS_META.queued ?? { label: '排队中', dot: 'statusDotQueued', pill: 'pillWarn' }
+const DEFAULT_META: StatusMeta = STATUS_META.queued ?? { label: '排队中', dot: (css.statusDotQueued ?? ''), pill: (css.pillWarn ?? '') }
 
 const GROUPS = [
   { key: 'running', title: '执行中', empty: '暂无执行中的任务' },
@@ -156,7 +156,7 @@ function TaskCard({ task, onOpen, onLive }: { task: CoderTask; onOpen: () => voi
     <div className={css.taskItem} data-task-id={task.id}>
       <div className={css.taskTop}>
         <span className={css.taskId}>{task.id}</span>
-        <span className={clsx(css.badge, css[st.pill])}><span className={css.dot} />{st.label}</span>
+        <span className={clsx(css.badge, st.pill)}><span className={css.dot} />{st.label}</span>
         <span className={css.execBadge}>{task.profile || '未知'}</span>
         {task.priority ? <span className={css.tag}>{task.priority}</span> : null}
         {task.type ? <span className={css.tag}>{task.type}</span> : null}
@@ -375,7 +375,7 @@ export function CoderBoard() {
           <p className={css.pageDesc}>全部 dsh 任务 · H:/DSHAgent/bridge · 每 30 秒自动刷新</p>
         </div>
         <div className={css.rangeRow}>
-          <span className={clsx(css.badge, connected ? css.pillUp : css.pillDown)}>
+          <span className={clsx(css.badge, connected ? (css.pillUp ?? '') : (css.pillDown ?? ''))}>
             <span className={css.dot} />{connected ? '已连接' : '连接失败'}
           </span>
           <span className={css.refresh}>最后刷新 {refreshAt}</span>
@@ -416,9 +416,9 @@ export function CoderBoard() {
             <div key={g.key} className={clsx(css.group, open ? css.groupOpen : null)}>
               <button type="button" className={css.groupHead} data-group={g.key} aria-expanded={open} onClick={() => toggleGroup(g.key)}>
                 <span className={css.groupArrow} aria-hidden="true">▸</span>
-                <span className={clsx(css.statusDot, css[st.dot])} />
+                <span className={clsx(css.statusDot, st.dot)} />
                 <span className={css.groupName}>{g.title}</span>
-                <span className={clsx(css.badge, css[st.pill], css.groupCount)}>{groupTasks.length}</span>
+                <span className={clsx(css.badge, st.pill, css.groupCount)}>{groupTasks.length}</span>
               </button>
               {open && (
                 <div className={css.groupBody}>
@@ -456,7 +456,7 @@ export function CoderBoard() {
             <div className={css.modalHead}>
               <div className={css.liveHead}>
                 {activeLive && (
-                  <span className={clsx(css.badge, css[activeLive.pill])}><span className={css.dot} />{activeLive.label}</span>
+                  <span className={clsx(css.badge, activeLive.pill)}><span className={css.dot} />{activeLive.label}</span>
                 )}
                 <span className={css.execBadge}>{liveTask.profile || '未知'}</span>
                 <span className={css.modalId}>{liveTask.id}</span>

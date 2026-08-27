@@ -122,3 +122,20 @@
 # ui-permission:       the composer access-control chip (clears/steers permission).
 # ui-settings:         host-plane settings service the conversation surface needs.
 # ui-renderer:         mounts the React application into the boot kernel.
+
+# ── directory picker pinned to browse ────────────────────────────────────────
+# The shipped `directory-picker` row is the -auto chooser: on a Windows or
+# macOS loopback boot it resolves to the NATIVE backend, whose capability only
+# offers pick() — `host.createDirectory` (which the Dashboard's per-Agent
+# default-workspace auto-create relies on) requires the BROWSE capability and
+# fails with directory-picker-unavailable otherwise. Pin -browse on the
+# Dashboard composition (disable the auto row, insert the browse backend and
+# its client surface), exactly as the web e2e scaffold does, so a fresh home
+# always auto-creates `<DSH home>/dashboard/<agentId>`.
+- id: directory-picker
+  disabled: true
+- insert:
+    - id: directory-picker-browse
+      name: '@deepseek-ai/dsh-host-directory-picker-browse'
+    - id: ui-directory-picker-browse
+      name: '@deepseek-ai/dsh-client-ui-directory-picker-browse'

@@ -110,10 +110,10 @@ export function HealthBoard() {
       fetchJson('/api/v1/health/followups', SEED_FOLLOWUPS),
       fetchJson('/api/v1/health/evidence', SEED_EVIDENCE),
     ])
-    setMembers((mems as Member[]) ?? [])
-    setMetrics((mets as Metric[]) ?? [])
-    setFollowups((follows as Followup[]) ?? [])
-    setEvidence((ev as Evidence[]) ?? [])
+    setMembers(mems as Member[])
+    setMetrics(mets as Metric[])
+    setFollowups(follows as Followup[])
+    setEvidence(ev as Evidence[])
     setApiReachable(reachable)
   }, [])
 
@@ -135,7 +135,7 @@ export function HealthBoard() {
   const completeFollowup = async (id: number) => {
     setWriteError(null)
     try {
-      const resp = await fetch(HEALTH_API + '/api/v1/health/followups/' + id, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      const resp = await fetch(HEALTH_API + '/api/v1/health/followups/' + String(id), { method: 'POST', headers: { 'Content-Type': 'application/json' } })
       if (!resp.ok) { setWriteError(`操作失败：HTTP ${resp.status}`); return }
       void load()
     } catch { setWriteError('操作失败：健康服务(6996)不可用') }
@@ -147,7 +147,7 @@ export function HealthBoard() {
 
   return (
     <div className={css.board}>
-      <div className={css.pageHead}><div><h1 className={css.pageTitle}>家庭健康看板</h1><p className={css.pageDesc}>整理与提醒 · 不替代医生诊断</p></div><div className={css.rangeRow}><button type="button" className={css.refreshBtn} onClick={load}>刷新</button></div></div>
+      <div className={css.pageHead}><div><h1 className={css.pageTitle}>家庭健康看板</h1><p className={css.pageDesc}>整理与提醒 · 不替代医生诊断</p></div><div className={css.rangeRow}><button type="button" className={css.refreshBtn} onClick={() => { void load() }}>刷新</button></div></div>
       {apiReachable === false && <div className={css.unavailable} role="alert">⚠️ 健康服务（127.0.0.1:6996）不可用，当前展示的是离线档案副本，非实时数据；服务恢复后自动切换真实数据。</div>}
       {writeError && <div className={css.unavailable} role="alert">{writeError}</div>}
 
@@ -179,7 +179,7 @@ export function HealthBoard() {
             <input className={css.input} placeholder="单位" value={formUnit} onChange={(e) => { setFormUnit(e.target.value) }} />
             <input className={css.input} type="date" value={formDate} onChange={(e) => { setFormDate(e.target.value) }} />
             <input className={css.input} placeholder="备注" value={formNote} onChange={(e) => { setFormNote(e.target.value) }} />
-            <button type="button" className={css.primaryBtn} disabled={writing || !formValue} onClick={addMetric}>添加</button>
+            <button type="button" className={css.primaryBtn} disabled={writing || !formValue} onClick={() => { void addMetric() }}>添加</button>
           </div>
         </div>
       </div>
@@ -189,11 +189,11 @@ export function HealthBoard() {
         <div className={css.tableWrap}>
           <table className={css.table}>
             <thead><tr><th>成员</th><th>事项</th><th>类别</th><th>到期</th><th>状态</th><th>操作</th></tr></thead>
-            <tbody>{[...followups].sort((a, b) => String(a.due_date ?? '').localeCompare(String(b.due_date ?? ''))).map((f) => {
+            <tbody>{[...followups].sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? '')).map((f) => {
               const overdue = f.status === 'pending' && f.due_date != null && f.due_date < today
               const badgeCls = f.status === 'done' ? css.badgeOk : overdue ? css.badgeErr : css.badgeWarn
               const badgeText = f.status === 'done' ? '完成' : overdue ? '逾期' : '待办'
-              return <tr key={f.id}><td>{memberName(f.member_id)}</td><td><strong>{f.item}</strong>{f.note ? <br /> : null}{f.note ? <span className={css.muted}>{f.note}</span> : null}</td><td>{CATEGORY_LABELS[f.category] ?? f.category}</td><td>{f.due_date ?? '—'}</td><td><span className={clsx(css.badge, badgeCls)}>{badgeText}</span></td><td>{f.status === 'done' ? <span className={css.muted}>—</span> : <button type="button" className={css.ghostBtn} onClick={() => { completeFollowup(f.id) }}>完成</button>}</td></tr>
+              return <tr key={f.id}><td>{memberName(f.member_id)}</td><td><strong>{f.item}</strong>{f.note ? <br /> : null}{f.note ? <span className={css.muted}>{f.note}</span> : null}</td><td>{CATEGORY_LABELS[f.category] ?? f.category}</td><td>{f.due_date ?? '—'}</td><td><span className={clsx(css.badge, badgeCls)}>{badgeText}</span></td><td>{f.status === 'done' ? <span className={css.muted}>—</span> : <button type="button" className={css.ghostBtn} onClick={() => { void completeFollowup(f.id) }}>完成</button>}</td></tr>
             })}</tbody>
           </table>
         </div>

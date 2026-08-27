@@ -20,6 +20,7 @@ import { presetForAgent, resolveAgentPreset } from './presets.ts'
 import { CoderBoard } from './CoderBoard.tsx'
 import { InvestBoard } from './InvestBoard.tsx'
 import { VideoBoard } from './VideoBoard.tsx'
+import { BtenderBoard } from './BtenderBoard.tsx'
 import css from './DashboardFrame.module.css'
 
 /** One stat card's display value and label. */
@@ -352,6 +353,8 @@ export function DashboardFrame({
 
       {/* Center column: 6995-style board */}
       <main className={css.centerPanel}>
+        {presetNotice !== undefined && <p className={css.presetNotice} role="status">{presetNotice}</p>}
+        {workspaceNotice !== undefined && <p className={css.presetNotice} role="status">{workspaceNotice}</p>}
         {renderSlot('dashboard.main', mainOwner, {
           fallback: selectedAgent.id === 'coder'
             ? <CoderBoard />
@@ -359,21 +362,23 @@ export function DashboardFrame({
               ? <InvestBoard />
               : selectedAgent.id === 'video'
                 ? <VideoBoard />
-                : (
-                  <AgentBoard
-                    selectedAgentLabel={mainOwner.selectedAgentLabel}
-                    selectedAgentId={mainOwner.selectedAgentId}
-                    stats={stats}
-                    groups={groups}
-                    baselinesReady={workspaces.baselinesReady}
-                    currentSessionId={sessions.current}
-                    presetNotice={presetNotice}
-                    workspaceNotice={workspaceNotice}
-                    openSession={openSession}
-                    startSession={startWithPreset}
-                    t={t}
-                  />
-                ),
+                : selectedAgent.id === 'btender'
+                  ? <BtenderBoard />
+                  : (
+                    <AgentBoard
+                      selectedAgentLabel={mainOwner.selectedAgentLabel}
+                      selectedAgentId={mainOwner.selectedAgentId}
+                      stats={stats}
+                      groups={groups}
+                      baselinesReady={workspaces.baselinesReady}
+                      currentSessionId={sessions.current}
+                      presetNotice={presetNotice}
+                      workspaceNotice={workspaceNotice}
+                      openSession={openSession}
+                      startSession={startWithPreset}
+                      t={t}
+                    />
+                  ),
         })}
       </main>
 

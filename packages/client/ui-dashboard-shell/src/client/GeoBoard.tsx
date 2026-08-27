@@ -105,7 +105,7 @@ export function GeoBoard() {
 
       <div className={css.card}>
         <div className={css.cardHead}>
-          <div className={css.cardTitle}>关键词排名</div><span className={css.cardSub}>{keywords.length} 词 · 每 30 秒刷新</span>
+          <div className={css.cardTitle}>关键词排名</div><span className={css.cardSub}>{keywords.length} 词 · 每 30 秒刷新{apiReachable === false ? '（离线参考，非实时）' : ''}</span>
         </div>
         <div className={css.tableWrap}>
           <table className={css.table}>
@@ -123,7 +123,7 @@ export function GeoBoard() {
       </div>
 
       <div className={css.card}>
-        <div className={css.cardHead}><div className={css.cardTitle}>内容任务</div><span className={css.cardSub}>管线执行</span></div>
+        <div className={css.cardHead}><div className={css.cardTitle}>内容任务</div><span className={css.cardSub}>管线执行{apiReachable === false ? '（离线参考，非实时）' : ''}</span></div>
         <div className={css.tableWrap}>
           <table className={css.table}><thead><tr><th>任务</th><th>状态</th><th>进度</th><th>更新</th></tr></thead>
             <tbody>{tasks.map(t => <tr key={t.id}><td>{t.title}</td><td><span className={clsx(css.badge, t.status === 'done' ? css.badgeOk : t.status === 'running' ? css.badgeInfo : css.badgeWarn)}>{t.status === 'done' ? '完成' : t.status === 'running' ? '执行中' : '排队中'}</span></td><td><div className={css.progressBar}><span className={css.progressFill} style={{ width: `${t.progress ?? 0}%` }} /></div></td><td className={css.muted}>{t.updated}</td></tr>)}</tbody></table>

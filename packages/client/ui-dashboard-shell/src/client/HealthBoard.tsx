@@ -152,12 +152,12 @@ export function HealthBoard() {
       {writeError && <div className={css.unavailable} role="alert">{writeError}</div>}
 
       <div className={css.card}>
-        <div className={css.cardHead}><div className={css.cardTitle}>家庭成员档案</div><span className={css.cardSub}>六人 · 家庭健康记录</span></div>
+        <div className={css.cardHead}><div className={css.cardTitle}>家庭成员档案</div><span className={css.cardSub}>六人 · 家庭健康记录{apiReachable === false ? '（离线参考，非实时）' : ''}</span></div>
         <div className={css.memberGrid}>{members.map(m => <MemberCard key={m.id} m={m} />)}</div>
       </div>
 
       <div className={css.card}>
-        <div className={css.cardHead}><div className={css.cardTitle}>健康指标</div><span className={css.cardSub}>趋势与记录</span></div>
+        <div className={css.cardHead}><div className={css.cardTitle}>健康指标</div><span className={css.cardSub}>趋势与记录{apiReachable === false ? '（离线参考，非实时）' : ''}</span></div>
         <div className={css.toolbar}>
           <select className={css.select} value={filter} onChange={(e) => { setFilter(e.target.value) }}><option value="">全部成员</option>{members.map(m => <option key={m.id} value={String(m.id)}>{m.name}</option>)}</select>
         </div>
@@ -185,7 +185,7 @@ export function HealthBoard() {
       </div>
 
       <div className={css.card}>
-        <div className={css.cardHead}><div className={css.cardTitle}>随访提醒</div><span className={css.cardSub}>复查 · 用药核对 · 检查</span></div>
+        <div className={css.cardHead}><div className={css.cardTitle}>随访提醒</div><span className={css.cardSub}>复查 · 用药核对 · 检查{apiReachable === false ? '（离线参考，非实时）' : ''}</span></div>
         <div className={css.tableWrap}>
           <table className={css.table}>
             <thead><tr><th>成员</th><th>事项</th><th>类别</th><th>到期</th><th>状态</th><th>操作</th></tr></thead>

@@ -17,7 +17,7 @@ import type {
 } from './contract/slots.ts'
 import type { DashboardKey } from './locales.ts'
 import { presetForAgent, resolveAgentPreset } from './presets.ts'
-import { CoderBoard } from './CoderBoard.tsx'
+import { CoderPlatformBoard } from './CoderPlatformBoard.tsx'
 import { InvestBoard } from './InvestBoard.tsx'
 import { VideoBoard } from './VideoBoard.tsx'
 import { BtenderBoard } from './BtenderBoard.tsx'
@@ -368,7 +368,7 @@ export function DashboardFrame({
         {workspaceNotice !== undefined && <p className={css.presetNotice} role="status">{workspaceNotice}</p>}
         {renderSlot('dashboard.main', mainOwner, {
           fallback: selectedAgent.id === 'coder'
-            ? <CoderBoard />
+            ? <CoderPlatformBoard />
             : selectedAgent.id === 'invest'
               ? <InvestBoard />
               : selectedAgent.id === 'video'
